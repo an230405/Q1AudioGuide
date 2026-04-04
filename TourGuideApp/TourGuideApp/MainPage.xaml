@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TourGuideApp.MainPage"
+             Title="Trang chủ"
+             BackgroundColor="#F5F5F5">
+
+    <VerticalStackLayout Padding="10" Spacing="10">
+
+        <Button Text="TẢI ĐIỂM DU LỊCH" 
+                Clicked="OnLoadClicked"
+                FontAttributes="Bold"
+                BackgroundColor="#512BD4"
+                TextColor="White"
+                CornerRadius="10"
+                HeightRequest="50"
+                Margin="5,0,5,10"/>
+
+        <CollectionView x:Name="poiList"
+                        SelectionMode="Single" 
+                        SelectionChanged="OnPoiSelected">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Margin="5" 
+                           Padding="0" 
+                           CornerRadius="12" 
+                           HasShadow="True" 
+                           IsClippedToBounds="True"
+                           BorderColor="Transparent">
+
+                        <Grid ColumnDefinitions="120, *">
+
+                            <Image Source="{Binding ImageUrl}" 
+                                   Aspect="AspectFill" 
+                                   HeightRequest="100" 
+                                   WidthRequest="120"
+                                   BackgroundColor="LightGray"/>
+
+                            <VerticalStackLayout Grid.Column="1" 
+                                                 Padding="15" 
+                                                 VerticalOptions="Center"
+                                                 Spacing="5">
+
+                                <Label Text="{Binding Name}" 
+                                       FontSize="18" 
+                                       FontAttributes="Bold" 
+                                       TextColor="#2B3C58"/>
+
+                                <Label Text="{Binding Content.Title}" 
+                                       FontSize="14" 
+                                       TextColor="Gray"
+                                       MaxLines="2"
+                                       LineBreakMode="TailTruncation"/>
+
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Grid.Column="1" Padding="15" VerticalOptions="Center" Spacing="5">
+
+                    <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" TextColor="#2B3C58"/>
+
+                    <Label Text="{Binding DistanceText}" 
+           FontSize="14" 
+           FontAttributes="Italic" 
+           TextColor="#D32F2F" />
+
+                    <Label Text="{Binding Content.Title}" FontSize="14" TextColor="Gray" MaxLines="2" LineBreakMode="TailTruncation"/>
+
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+        </CollectionView>
+
+    </VerticalStackLayout>
+</ContentPage>
