@@ -1,63 +1,119 @@
-using TourGuideApp.Models;
+using System.Diagnostics;
 using ZXing.Net.Maui;
 
 namespace TourGuideApp;
 
 public partial class QRScannerPage : ContentPage
 {
-    List<POI> _danhSachDiaDiem;
+    List<Models.POI> _danhSachPOI;
+    bool _isScanning = true;
 
-    public QRScannerPage(List<POI> data)
+    public QRScannerPage(List<Models.POI> pois)
     {
         InitializeComponent();
-        _danhSachDiaDiem = data;
+        _danhSachPOI = pois;
 
-        // Ép nó chỉ tập trung tìm mã QR (Bỏ qua mã vạch siêu thị để quét cho lẹ)
         barcodeReader.Options = new BarcodeReaderOptions
         {
-            Formats = ZXing.Net.Maui.BarcodeFormat.QrCode,
+            Formats = BarcodeFormat.QrCode,
             AutoRotate = true,
             Multiple = false
         };
+
+        // GỌI HÀM DỊCH KHI MỞ CAMERA LÊN
+        DichGiaoDien();
     }
 
-    protected override void OnAppearing()
+    // ==========================================
+    // HÀM TỰ ĐỘNG DỊCH NGÔN NGỮ CHO TRANG QR
+    // ==========================================
+    private void DichGiaoDien()
     {
-        base.OnAppearing();
-        barcodeReader.IsDetecting = true; // Mở trang lên là tự động quét
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        barcodeReader.IsDetecting = false; // Tắt trang thì dừng quét cho đỡ tốn pin
-    }
-
-    // Hàm này chạy khi camera chụp được mã
-    private void BarcodeReader_BarcodesDetected(object sender, BarcodeDetectionEventArgs e)
-    {
-        var result = e.Results?.FirstOrDefault();
-        if (result != null)
+        if (App.CurrentLanguage == 0) // Tiếng Việt
         {
-            barcodeReader.IsDetecting = false; // Thấy mã là phanh gấp lại ngay
+            lblInstruction.Text = "📷 Đưa mã QR vào khung ngắm";
+            lblHome.Text = "Trang chủ";
+            lblQr.Text = "Quét QR";
+        }
+        else if (App.CurrentLanguage == 1) // Tiếng Anh
+        {
+            lblInstruction.Text = "📷 Align QR code within frame";
+            lblHome.Text = "Home";
+            lblQr.Text = "Scan QR";
+        }
+        else if (App.CurrentLanguage == 2) // Tiếng Trung
+        {
+            lblInstruction.Text = "📷 请将二维码放入框内";
+            lblHome.Text = "首页";
+            lblQr.Text = "扫码";
+        }
+        else // Tiếng Nhật
+        {
+            lblInstruction.Text = "📷 QRコードを枠内に配置";
+            lblHome.Text = "ホーム";
+            lblQr.Text = "QR読取";
+        }
+    }
 
-            Dispatcher.DispatchAsync(async () =>
+    protected override void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+        barcodeReader.IsDetecting = true;
+        _isScanning = true;
+    }
+
+    protected override void OnNavigatingFrom(NavigatingFromEventArgs args)
+    {
+        base.OnNavigatingFrom(args);
+        barcodeReader.IsDetecting = false;
+    }
+
+    private void OnBarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+    {
+        if (!_isScanning) return;
+
+        var firstResult = e.Results?.FirstOrDefault();
+        if (firstResult != null)
+        {
+            _isScanning = false;
+            string qrContent = firstResult.Value;
+
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                string qrText = result.Value; // Lấy chữ bên trong mã QR
-                var foundPoi = _danhSachDiaDiem.FirstOrDefault(p => p.Name == qrText);
+                barcodeReader.IsDetecting = false;
+
+                var foundPoi = _danhSachPOI.FirstOrDefault(p => p.Id.ToString() == qrContent);
 
                 if (foundPoi != null)
                 {
-                    // Tìm thấy điểm du lịch -> Mở trang chi tiết
+                    await Navigation.PopAsync();
                     await Navigation.PushAsync(new PoiDetailPage(foundPoi));
                 }
                 else
                 {
-                    // Không tìm thấy
-                    await DisplayAlert("Chú ý", $"Không tìm thấy dữ liệu cho mã: {qrText}", "OK");
-                    barcodeReader.IsDetecting = true; // Cho quét lại
+                    // Dịch luôn popup báo lỗi cho xịn
+                    string errTitle = App.CurrentLanguage == 0 ? "Không tìm thấy" : (App.CurrentLanguage == 1 ? "Not Found" : (App.CurrentLanguage == 2 ? "未找到" : "見つかりません"));
+                    string errMsg = App.CurrentLanguage == 0 ? $"Mã QR '{qrContent}' không thuộc khu du lịch này." : (App.CurrentLanguage == 1 ? $"Invalid QR code." : (App.CurrentLanguage == 2 ? $"无效的二维码" : $"無効なQRコード"));
+                    string errBtn = App.CurrentLanguage == 0 ? "Quét lại" : (App.CurrentLanguage == 1 ? "Retry" : (App.CurrentLanguage == 2 ? "重试" : "再試行"));
+
+                    await DisplayAlert(errTitle, errMsg, errBtn);
+                    _isScanning = true;
+                    barcodeReader.IsDetecting = true;
                 }
             });
         }
+    }
+
+    // NÚT THOÁT VÀ NÚT HOME Ở FOOTER
+    private async void OnBackClicked(object sender, EventArgs e)
+    {
+        barcodeReader.IsDetecting = false;
+        await Navigation.PopAsync();
+    }
+
+    private async void OnHomeClicked(object sender, TappedEventArgs e)
+    {
+        barcodeReader.IsDetecting = false;
+        await Navigation.PopAsync();
     }
 }

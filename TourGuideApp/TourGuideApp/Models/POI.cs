@@ -47,6 +47,8 @@ public class POI
             return $"📍 Cách đây {DistanceToUser:F1} km";
         }
     }
+
+    public string? Description { get; internal set; }
 }
 
 public class Content

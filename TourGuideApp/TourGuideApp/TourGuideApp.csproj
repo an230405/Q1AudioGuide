@@ -64,12 +64,21 @@
 		-->
 
 		
+		<PackageReference Include="Mapsui.Maui" Version="4.1.7" />
+
+		
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+
+		
+		<PackageReference Include="Microsoft.Maui.Controls.Maps" Version="10.0.51" />
 		<PackageReference Include="ZXing.Net.Maui" Version="0.4.0" />
 		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.4.0" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="MapPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="PoiDetailPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

@@ -3,19 +3,52 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
              x:Class="TourGuideApp.QRScannerPage"
-             Title="Quét mã QR"
-             BackgroundColor="Black">
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#2563EB">
 
-    <Grid>
-        <zxing:CameraBarcodeReaderView 
-            x:Name="barcodeReader"
-            BarcodesDetected="BarcodeReader_BarcodesDetected" />
+    <Grid RowDefinitions="*, 65">
+        <Grid Grid.Row="0">
+            <zxing:CameraBarcodeReaderView x:Name="barcodeReader" BarcodesDetected="OnBarcodesDetected"
+                                           HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" />
 
-        <Border Stroke="Red" StrokeThickness="3" BackgroundColor="Transparent" 
-                WidthRequest="250" HeightRequest="250" HorizontalOptions="Center" VerticalOptions="Center" />
+            <Grid RowDefinitions="*, 250, *" ColumnDefinitions="*, 250, *">
+                <BoxView Grid.Row="0" Grid.ColumnSpan="3" BackgroundColor="#80000000" />
+                <BoxView Grid.Row="2" Grid.ColumnSpan="3" BackgroundColor="#80000000" />
+                <BoxView Grid.Row="1" Grid.Column="0" BackgroundColor="#80000000" />
+                <BoxView Grid.Row="1" Grid.Column="2" BackgroundColor="#80000000" />
+                <Frame Grid.Row="1" Grid.Column="1" BorderColor="#2563EB" BackgroundColor="Transparent" CornerRadius="10" HasShadow="False" />
 
-        <Label Text="Hướng camera vào mã QR" TextColor="White" BackgroundColor="#80000000" 
-               HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,50" Padding="15" />
+                <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="3" HorizontalOptions="Center" Margin="0,30,0,0" Spacing="10">
+                    <Label x:Name="lblInstruction" Text="📷 Đưa mã QR vào khung ngắm" TextColor="White" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Button Text="❮" Clicked="OnBackClicked" 
+                    BackgroundColor="White" TextColor="#2563EB" 
+                    FontSize="22" FontAttributes="Bold" 
+                    WidthRequest="45" HeightRequest="45" 
+                    CornerRadius="22" Padding="0" 
+                    HorizontalOptions="Start" VerticalOptions="Start" 
+                    Margin="15, 35, 0, 0">
+                <Button.Shadow>
+                    <Shadow Brush="Black" Offset="0,4" Radius="5" Opacity="0.2"/>
+                </Button.Shadow>
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1" BackgroundColor="#2563EB" ColumnDefinitions="*, *" Padding="0, 10, 0, 0">
+            <VerticalStackLayout Grid.Column="0" HorizontalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnHomeClicked"/>
+                </VerticalStackLayout.GestureRecognizers>
+                <Label Text="🏠" TextColor="#A0AEC0" FontSize="20" HorizontalOptions="Center"/>
+                <Label x:Name="lblHome" Text="Trang chủ" TextColor="#A0AEC0" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                <Label Text="📷" TextColor="White" FontSize="20" HorizontalOptions="Center"/>
+                <Label x:Name="lblQr" Text="Quét QR" TextColor="White" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
     </Grid>
-
 </ContentPage>

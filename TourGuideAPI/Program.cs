@@ -34,6 +34,6 @@ if (app.Environment.IsDevelopment())
 
 // 3. TẠM TẮT HTTPS REDIRECTION (Để test bằng HTTP cho dễ)
 // app.UseHttpsRedirection(); 
-
+app.UseStaticFiles();
 app.MapControllers();
 app.Run();

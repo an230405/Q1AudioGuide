@@ -1,0 +1,27 @@
+﻿@model List<POI>
+
+<h2>Danh sách địa điểm</h2>
+
+<a href="/POI/Create">+ Thêm mới</a>
+
+<table border="1">
+    <tr>
+        <th>Tên</th>
+        <th>Lat</th>
+        <th>Lng</th>
+        <th>Action</th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.Name</td>
+            <td>@item.Latitude</td>
+            <td>@item.Longitude</td>
+            <td>
+                <a href="/POI/Edit/@item.Id">Sửa</a>
+                <a href="/POI/Delete/@item.Id">Xóa</a>
+            </td>
+        </tr>
+    }
+</table>

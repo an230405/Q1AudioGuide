@@ -1,4 +1,4 @@
-@TourGuideAPI_HostAddress = http://localhost:5155
+@TourGuideAPI_HostAddress = http://192.168.31.163:5155
 
 GET {{TourGuideAPI_HostAddress}}/weatherforecast/
 Accept: application/json

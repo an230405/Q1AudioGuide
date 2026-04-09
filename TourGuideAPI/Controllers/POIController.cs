@@ -2,48 +2,62 @@
 using Microsoft.EntityFrameworkCore;
 using TourGuideAPI.Models;
 
-[Route("api/[controller]")]
-[ApiController]
-public class POIController : ControllerBase
+namespace TourGuideAPI.Controllers
 {
-    private readonly AudioGuideDbContext _context;
-
-    public POIController(AudioGuideDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class POIController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly AudioGuideDbContext _context;
 
-    [HttpGet]
-    public async Task<IActionResult> GetPOIs(string lang = "vi")
-    {
-        var data = await _context.Pois
-            .Include(p => p.Translations)
-            .Include(p => p.Audios) // Đừng quên cái này nhé
-            .Select(p => new
-            {
-                p.Id,
-                p.Name,
-                p.Latitude,
-                p.Longitude,
-                p.Radius,
-                p.ImageUrl,
-                // Sửa chỗ này để bọc Title, Description và AudioUrl vào chung object Content
-                Content = p.Translations
-                    .Where(c => c.Language.Code == lang)
-                    .Select(c => new
-                    {
-                        c.Title,
-                        Description = c.Content,
-                        // Đưa AudioUrl vào đây cho khớp với Model phía App
-                        AudioUrl = p.Audios
-                            .Where(a => a.Language.Code == lang)
-                            .Select(a => a.AudioUrl)
-                            .FirstOrDefault()
-                    })
-                    .FirstOrDefault()
-            })
-            .ToListAsync();
+        public POIController(AudioGuideDbContext context)
+        {
+            _context = context;
+        }
 
-        return Ok(data);
+        [HttpGet]
+        // ĐÃ THÊM [FromQuery] ĐỂ BẮT CHÍNH XÁC NGÔN NGỮ TỪ APP GỬI LÊN
+        public async Task<IActionResult> GetPOIs([FromQuery] string lang = "vi")
+        {
+            // Chuyển thành chữ thường để tránh lỗi viết hoa/thường (VD: "EN" và "en")
+            string langCode = lang.ToLower();
+
+            var data = await _context.Pois
+                .Select(p => new
+                {
+                    Id = p.Id,
+
+                    // CHÌA KHÓA: Lấy Tên Dịch. Nếu không có bản dịch thì giữ lại tên gốc tiếng Anh/Việt.
+                    Name = p.Translations
+                            .Where(t => t.Language != null && t.Language.Code.ToLower() == langCode)
+                            .Select(t => t.Title)
+                            .FirstOrDefault() ?? p.Name,
+
+                    Latitude = p.Latitude,
+                    Longitude = p.Longitude,
+                    Radius = p.Radius,
+                    ImageUrl = p.ImageUrl,
+
+                    // Dự phòng Description gốc để tránh lỗi trắng trang
+                    Description = p.Description,
+
+                    // Lấy Nội dung chi tiết và Âm thanh theo đúng ngôn ngữ
+                    Content = p.Translations
+                        .Where(c => c.Language != null && c.Language.Code.ToLower() == langCode)
+                        .Select(c => new
+                        {
+                            Title = c.Title,
+                            Description = c.Content,
+                            AudioUrl = p.Audios
+                                .Where(a => a.Language != null && a.Language.Code.ToLower() == langCode)
+                                .Select(a => a.AudioUrl)
+                                .FirstOrDefault()
+                        })
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Ok(data);
+        }
     }
 }

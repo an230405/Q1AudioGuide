@@ -2,79 +2,89 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TourGuideApp.MainPage"
-             Title="Trang chủ"
-             BackgroundColor="#F5F5F5">
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="White">
 
-    <VerticalStackLayout Padding="10" Spacing="10">
+    <Grid>
+        <BoxView HeightRequest="300" VerticalOptions="Start">
+            <BoxView.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#2563EB" Offset="0.1" />
+                    <GradientStop Color="#60A5FA" Offset="1.0" />
+                </LinearGradientBrush>
+            </BoxView.Background>
+        </BoxView>
 
-        <Button Text="TẢI ĐIỂM DU LỊCH" 
-                Clicked="OnLoadClicked"
-                FontAttributes="Bold"
-                BackgroundColor="#512BD4"
-                TextColor="White"
-                CornerRadius="10"
-                HeightRequest="50"
-                Margin="5,0,5,10"/>
+        <VerticalStackLayout Spacing="0" VerticalOptions="FillAndExpand">
 
-        <CollectionView x:Name="poiList"
-                        SelectionMode="Single" 
-                        SelectionChanged="OnPoiSelected">
+            <VerticalStackLayout Padding="30, 70, 30, 40" Spacing="10">
+                <Label Text="Xin chào! 👋" FontSize="20" TextColor="#DBEAFE" FontAttributes="Bold" />
+                <Label Text="Khám phá Sài Gòn" FontSize="32" FontAttributes="Bold" TextColor="White" LineHeight="1.1" />
+                <Label x:Name="lblSubTitle" Text="Người bạn đồng hành trên mọi nẻo đường" TextColor="White" Opacity="0.9" FontSize="15" />
+            </VerticalStackLayout>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Frame Margin="5" 
-                           Padding="0" 
-                           CornerRadius="12" 
-                           HasShadow="True" 
-                           IsClippedToBounds="True"
-                           BorderColor="Transparent">
+            <Frame Margin="0" Padding="30, 40, 30, 30" CornerRadius="40" BackgroundColor="White" HasShadow="False" VerticalOptions="FillAndExpand">
+                <VerticalStackLayout Spacing="35">
 
-                        <Grid ColumnDefinitions="120, *">
+                    <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween" AlignContent="Center" AlignItems="Center">
 
-                            <Image Source="{Binding ImageUrl}" 
-                                   Aspect="AspectFill" 
-                                   HeightRequest="100" 
-                                   WidthRequest="120"
-                                   BackgroundColor="LightGray"/>
+                        <VerticalStackLayout WidthRequest="90" Spacing="8">
+                            <Frame HeightRequest="65" WidthRequest="65" CornerRadius="32" BackgroundColor="#EFF6FF" BorderColor="Transparent" Padding="0" HasShadow="False">
+                                <Label Text="📍" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Frame>
+                            <Label x:Name="lblFeature1" Text="Chỉ đường" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
+                        </VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Column="1" 
-                                                 Padding="15" 
-                                                 VerticalOptions="Center"
-                                                 Spacing="5">
+                        <VerticalStackLayout WidthRequest="90" Spacing="8">
+                            <Frame HeightRequest="65" WidthRequest="65" CornerRadius="32" BackgroundColor="#EFF6FF" BorderColor="Transparent" Padding="0" HasShadow="False">
+                                <Label Text="🎧" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Frame>
+                            <Label x:Name="lblFeature2" Text="Thuyết minh" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
+                        </VerticalStackLayout>
 
-                                <Label Text="{Binding Name}" 
-                                       FontSize="18" 
-                                       FontAttributes="Bold" 
-                                       TextColor="#2B3C58"/>
+                        <VerticalStackLayout WidthRequest="90" Spacing="8">
+                            <Frame HeightRequest="65" WidthRequest="65" CornerRadius="32" BackgroundColor="#EFF6FF" BorderColor="Transparent" Padding="0" HasShadow="False">
+                                <Label Text="🌐" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Frame>
+                            <Label x:Name="lblFeature3" Text="Đa ngôn ngữ" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
+                        </VerticalStackLayout>
 
-                                <Label Text="{Binding Content.Title}" 
-                                       FontSize="14" 
-                                       TextColor="Gray"
-                                       MaxLines="2"
-                                       LineBreakMode="TailTruncation"/>
+                    </FlexLayout>
 
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Frame>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="Bạn muốn dùng ngôn ngữ nào?" FontSize="16" FontAttributes="Bold" TextColor="#475569" HorizontalOptions="Center" />
 
-            <CollectionView.EmptyView>
-                <VerticalStackLayout Grid.Column="1" Padding="15" VerticalOptions="Center" Spacing="5">
+                        <Frame Padding="15, 0" CornerRadius="20" BackgroundColor="#F1F5F9" BorderColor="Transparent" HasShadow="False" HeightRequest="60">
+                            <Picker x:Name="langPicker" Title="Chạm để chọn..." FontSize="17" TextColor="#1E293B" HorizontalTextAlignment="Center" SelectedIndexChanged="OnLanguageChanged">
+                                <Picker.Items>
+                                    <x:String>🇻🇳 Tiếng Việt</x:String>
+                                    <x:String>🇬🇧 English</x:String>
+                                    <x:String>🇨🇳 中文</x:String>
+                                    <x:String>🇯🇵 日本語</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </Frame>
+                    </VerticalStackLayout>
 
-                    <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" TextColor="#2B3C58"/>
-
-                    <Label Text="{Binding DistanceText}" 
-           FontSize="14" 
-           FontAttributes="Italic" 
-           TextColor="#D32F2F" />
-
-                    <Label Text="{Binding Content.Title}" FontSize="14" TextColor="Gray" MaxLines="2" LineBreakMode="TailTruncation"/>
+                    <Button x:Name="btnStart" Text="KHÁM PHÁ NGAY" Clicked="OnStartClicked"
+                            BackgroundColor="#2563EB" TextColor="White" FontAttributes="Bold" FontSize="17"
+                            CornerRadius="20" HeightRequest="65" VerticalOptions="End">
+                        <Button.Shadow>
+                            <Shadow Brush="#2563EB" Offset="0,10" Radius="20" Opacity="0.3" />
+                        </Button.Shadow>
+                    </Button>
 
                 </VerticalStackLayout>
-            </CollectionView.EmptyView>
+            </Frame>
+        </VerticalStackLayout>
 
-        </CollectionView>
+        <Grid x:Name="loadingOverlay" BackgroundColor="White" IsVisible="False">
+            <VerticalStackLayout VerticalOptions="Center" Spacing="25">
+                <ActivityIndicator IsRunning="True" Color="#2563EB" Scale="1.5" />
+                <Label x:Name="lblLoading" Text="Đang chuẩn bị hành trình..." TextColor="#2563EB" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
 
-    </VerticalStackLayout>
+    </Grid>
 </ContentPage>
