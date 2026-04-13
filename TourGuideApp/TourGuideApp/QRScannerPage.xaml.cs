@@ -1,17 +1,18 @@
-using System.Diagnostics;
+using TourGuideApp.Services;
 using ZXing.Net.Maui;
 
 namespace TourGuideApp;
 
 public partial class QRScannerPage : ContentPage
 {
-    List<Models.POI> _danhSachPOI;
-    bool _isScanning = true;
+    bool 
+        _isScanning = true;
+    ApiService _apiService;
 
-    public QRScannerPage(List<Models.POI> pois)
+    public QRScannerPage()
     {
         InitializeComponent();
-        _danhSachPOI = pois;
+        _apiService = new ApiService();
 
         barcodeReader.Options = new BarcodeReaderOptions
         {
@@ -20,39 +21,17 @@ public partial class QRScannerPage : ContentPage
             Multiple = false
         };
 
-        // GỌI HÀM DỊCH KHI MỞ CAMERA LÊN
         DichGiaoDien();
     }
 
-    // ==========================================
-    // HÀM TỰ ĐỘNG DỊCH NGÔN NGỮ CHO TRANG QR
-    // ==========================================
     private void DichGiaoDien()
     {
-        if (App.CurrentLanguage == 0) // Tiếng Việt
-        {
-            lblInstruction.Text = "📷 Đưa mã QR vào khung ngắm";
-            lblHome.Text = "Trang chủ";
-            lblQr.Text = "Quét QR";
-        }
-        else if (App.CurrentLanguage == 1) // Tiếng Anh
-        {
-            lblInstruction.Text = "📷 Align QR code within frame";
-            lblHome.Text = "Home";
-            lblQr.Text = "Scan QR";
-        }
-        else if (App.CurrentLanguage == 2) // Tiếng Trung
-        {
-            lblInstruction.Text = "📷 请将二维码放入框内";
-            lblHome.Text = "首页";
-            lblQr.Text = "扫码";
-        }
-        else // Tiếng Nhật
-        {
-            lblInstruction.Text = "📷 QRコードを枠内に配置";
-            lblHome.Text = "ホーム";
-            lblQr.Text = "QR読取";
-        }
+        string lang = App.CurrentLanguageCode; // Lấy "th", "vi", "en"...
+
+        // Gọi Từ điển ra xài, code sạch đẹp rạng ngời!
+        lblInstruction.Text = Services.AppTranslator.Get(lang, "Instruction");
+        lblHome.Text = Services.AppTranslator.Get(lang, "Home");
+        lblQr.Text = Services.AppTranslator.Get(lang, "Qr");
     }
 
     protected override void OnNavigatedTo(NavigatedToEventArgs args)
@@ -68,43 +47,63 @@ public partial class QRScannerPage : ContentPage
         barcodeReader.IsDetecting = false;
     }
 
-    private void OnBarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+    private async void OnBarcodesDetected(object sender, ZXing.Net.Maui.BarcodeDetectionEventArgs e)
     {
-        if (!_isScanning) return;
+        var first = e.Results?.FirstOrDefault();
+        if (first == null) return;
 
-        var firstResult = e.Results?.FirstOrDefault();
-        if (firstResult != null)
+        Dispatcher.Dispatch(() => barcodeReader.IsDetecting = false);
+        string qrContent = first.Value.Trim();
+
+        if (int.TryParse(qrContent, out int poiId))
         {
-            _isScanning = false;
-            string qrContent = firstResult.Value;
+            // Sửa tham số truyền vào API thành App.CurrentLanguageCode (VD: "th")
+            var detail = await _apiService.GetPOIById(poiId, App.CurrentLanguageCode);
 
-            MainThread.BeginInvokeOnMainThread(async () =>
+            if (detail != null)
             {
-                barcodeReader.IsDetecting = false;
-
-                var foundPoi = _danhSachPOI.FirstOrDefault(p => p.Id.ToString() == qrContent);
-
-                if (foundPoi != null)
+                var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+                if (status == PermissionStatus.Granted)
                 {
-                    await Navigation.PopAsync();
-                    await Navigation.PushAsync(new PoiDetailPage(foundPoi));
+                    var myLocation = await Geolocation.Default.GetLastKnownLocationAsync();
+                    if (myLocation != null)
+                    {
+                        Location poiLoc = new Location(detail.Latitude, detail.Longitude);
+                        detail.DistanceToUser = myLocation.CalculateDistance(poiLoc, DistanceUnits.Kilometers);
+                    }
                 }
-                else
-                {
-                    // Dịch luôn popup báo lỗi cho xịn
-                    string errTitle = App.CurrentLanguage == 0 ? "Không tìm thấy" : (App.CurrentLanguage == 1 ? "Not Found" : (App.CurrentLanguage == 2 ? "未找到" : "見つかりません"));
-                    string errMsg = App.CurrentLanguage == 0 ? $"Mã QR '{qrContent}' không thuộc khu du lịch này." : (App.CurrentLanguage == 1 ? $"Invalid QR code." : (App.CurrentLanguage == 2 ? $"无效的二维码" : $"無効なQRコード"));
-                    string errBtn = App.CurrentLanguage == 0 ? "Quét lại" : (App.CurrentLanguage == 1 ? "Retry" : (App.CurrentLanguage == 2 ? "重试" : "再試行"));
 
-                    await DisplayAlert(errTitle, errMsg, errBtn);
-                    _isScanning = true;
-                    barcodeReader.IsDetecting = true;
-                }
-            });
+                Dispatcher.Dispatch(async () =>
+                {
+                    await Navigation.PushAsync(new PoiDetailPage(detail));
+                });
+            }
+            else
+            {
+                Dispatcher.Dispatch(() => ShowErrorAlert(qrContent, true));
+            }
+        }
+        else
+        {
+            Dispatcher.Dispatch(() => ShowErrorAlert(qrContent, false));
         }
     }
 
-    // NÚT THOÁT VÀ NÚT HOME Ở FOOTER
+    // Hàm báo lỗi đã được làm lại bằng Từ điển
+    private async void ShowErrorAlert(string qrContent, bool isIdNotFound)
+    {
+        string lang = App.CurrentLanguageCode;
+        string errTitle = Services.AppTranslator.Get(lang, "NotFound");
+        string errMsg = isIdNotFound
+                        ? $"{Services.AppTranslator.Get(lang, "NotFound")} ID: {qrContent}"
+                        : Services.AppTranslator.Get(lang, "InvalidQR");
+        string errBtn = Services.AppTranslator.Get(lang, "Retry");
+
+        await DisplayAlert(errTitle, errMsg, errBtn);
+        _isScanning = true;
+        barcodeReader.IsDetecting = true;
+    }
+
     private async void OnBackClicked(object sender, EventArgs e)
     {
         barcodeReader.IsDetecting = false;

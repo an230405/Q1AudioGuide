@@ -1,0 +1,99 @@
+@model List<QrCodeViewModel>
+@{ ViewData["Title"] = "Quản lý QR Code"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">Tổng: <strong>@Model.Count</strong> mã QR</p>
+    <a href="/QrCode/Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Tạo QR mới</a>
+</div>
+
+<div class="row g-3 mb-4">
+    @foreach (var qr in Model)
+    {
+        <div class="col-xl-3 col-md-4 col-sm-6">
+            <div class="admin-table p-3 text-center">
+                <div id="qr_@qr.Id" class="d-flex justify-content-center mb-2"></div>
+                <div class="fw-600 mb-1" style="font-size:14px;">@qr.PoiName</div>
+                <code style="font-size:10px;color:#7a8099;word-break:break-all;">@qr.QrValue</code>
+                <div class="mt-2" style="font-size:11px;color:#aaa;">@qr.CreatedAt?.ToString("dd/MM/yyyy")</div>
+                <div class="d-flex gap-2 justify-content-center mt-3">
+                    <button onclick="printQR('@qr.Id', '@qr.PoiName', '@qr.QrValue')"
+                            class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-printer me-1"></i>In
+                    </button>
+                    <form method="post" action="/QrCode/Delete/@qr.Id" style="display:inline"
+                          onsubmit="return confirm('Xóa QR này?')">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="admin-table p-5 text-center text-muted">
+                <i class="bi bi-qr-code fs-1 d-block mb-3"></i>
+                Chưa có mã QR nào. Nhấn <strong>Tạo QR mới</strong> để bắt đầu.
+            </div>
+        </div>
+    }
+</div>
+
+<iframe id="printFrame" style="display:none;"></iframe>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    @foreach (var qr in Model)
+    {
+        <text>
+        new QRCode(document.getElementById('qr_@qr.Id'), {
+            text: '@Html.Raw(qr.QrValue)',
+            width: 140, height: 140,
+            colorDark: '#1a1d2e', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        </text>
+    }
+});
+
+function printQR(id, poiName, qrValue) {
+    var qrEl = document.getElementById('qr_' + id);
+    var canvas = qrEl.querySelector('canvas');
+    if (!canvas) return;
+    var imgData = canvas.toDataURL('image/png');
+
+    var doc = document.implementation.createHTMLDocument('QR - ' + poiName);
+
+    var style = doc.createElement('style');
+    style.textContent = 'body{font-family:sans-serif;text-align:center;padding:40px;}h2{font-size:22px;margin-bottom:8px;}p{font-size:12px;color:#666;word-break:break-all;margin-top:8px;}img{border:1px solid #eee;border-radius:8px;padding:8px;}';
+    doc.head.appendChild(style);
+
+    var h2 = doc.createElement('h2');
+    h2.textContent = poiName;
+    doc.body.appendChild(h2);
+
+    var img = doc.createElement('img');
+    img.src = imgData;
+    img.width = 200;
+    img.height = 200;
+    doc.body.appendChild(img);
+
+    var p = doc.createElement('p');
+    p.textContent = qrValue;
+    doc.body.appendChild(p);
+
+    var scr = doc.createElement('script');
+    scr.textContent = 'window.onload=function(){window.print();window.close();}';
+    doc.body.appendChild(scr);
+
+    var frame = document.getElementById('printFrame');
+    frame.style.display = 'block';
+    frame.srcdoc = doc.documentElement.outerHTML;
+}
+</script>
+}

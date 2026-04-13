@@ -1,27 +1,59 @@
-﻿@model List<POI>
+@model List<PoiViewModel>
+@{ ViewData["Title"] = "Địa điểm (POI)"; }
 
-<h2>Danh sách địa điểm</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">Tổng: <strong>@Model.Count</strong> địa điểm</p>
+    <a href="/POI/Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Thêm địa điểm</a>
+</div>
 
-<a href="/POI/Create">+ Thêm mới</a>
-
-<table border="1">
-    <tr>
-        <th>Tên</th>
-        <th>Lat</th>
-        <th>Lng</th>
-        <th>Action</th>
-    </tr>
-
-    @foreach (var item in Model)
-    {
-        <tr>
-            <td>@item.Name</td>
-            <td>@item.Latitude</td>
-            <td>@item.Longitude</td>
-            <td>
-                <a href="/POI/Edit/@item.Id">Sửa</a>
-                <a href="/POI/Delete/@item.Id">Xóa</a>
-            </td>
-        </tr>
-    }
-</table>
+<div class="admin-table">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tên địa điểm</th>
+                <th>Tọa độ</th>
+                <th>Bán kính (m)</th>
+                <th>Trạng thái</th>
+                <th>Ngày tạo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-geo-alt fs-2 d-block mb-2"></i>Chưa có địa điểm nào</td></tr>
+            }
+            @foreach (var poi in Model)
+            {
+                <tr>
+                    <td class="text-muted" style="font-size:12px;">#@poi.Id</td>
+                    <td>
+                        <div class="fw-600">@poi.Name</div>
+                        @if (!string.IsNullOrEmpty(poi.ImageUrl))
+                        {
+                            <small class="text-muted"><i class="bi bi-image me-1"></i>Có ảnh</small>
+                        }
+                    </td>
+                    <td style="font-size:12px;font-family:monospace;">@poi.Latitude.ToString("F4"), @poi.Longitude.ToString("F4")</td>
+                    <td>@poi.Radius</td>
+                    <td>
+                        @if (poi.IsActive == true)
+                        { <span class="badge-active"><i class="bi bi-eye me-1"></i>Hiện</span> }
+                        else
+                        { <span class="badge-inactive"><i class="bi bi-eye-slash me-1"></i>Ẩn</span> }
+                    </td>
+                    <td style="font-size:12px;color:#7a8099;">@poi.CreatedAt?.ToString("dd/MM/yyyy")</td>
+                    <td class="text-end">
+                        <a href="/POI/Edit/@poi.Id" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
+                        <form method="post" action="/POI/Delete/@poi.Id" style="display:inline"
+                              onsubmit="return confirm('Xóa địa điểm @poi.Name?')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

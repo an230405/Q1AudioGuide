@@ -1,0 +1,104 @@
+@model PoiViewModel
+@{ ViewData["Title"] = "Sửa địa điểm"; }
+
+<div class="mb-3">
+    <a href="/POI" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+<div class="form-card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+        <input asp-for="Id" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label">Tên địa điểm <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" required />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Bán kính phát hiện (m)</label>
+                <input asp-for="Radius" type="number" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Vĩ độ (Latitude)</label>
+                <input asp-for="Latitude" type="number" step="any" class="form-control" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Kinh độ (Longitude)</label>
+                <input asp-for="Longitude" type="number" step="any" class="form-control" required />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Mô tả</label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <!-- Upload ảnh -->
+            <div class="col-12">
+                <label class="form-label">Hình ảnh địa điểm</label>
+                <div class="upload-area @(!string.IsNullOrEmpty(Model.ImageUrl) ? "has-file" : "")"
+                     id="imgUploadArea" onclick="document.getElementById('imageFile').click()">
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <div id="imgPlaceholder" style="display:none;">
+                            <i class="bi bi-image fs-2 text-muted d-block mb-2"></i>
+                            <div>Nhấn để đổi ảnh</div>
+                        </div>
+                        <img id="imgPreview" src="@Model.ImageUrl" alt=""
+                             style="max-height:180px;border-radius:8px;object-fit:cover;"
+                             onerror="this.style.display='none'" />
+                    }
+                    else
+                    {
+                        <div id="imgPlaceholder">
+                            <i class="bi bi-image fs-2 text-muted d-block mb-2"></i>
+                            <div>Nhấn để chọn ảnh (.jpg, .png, .webp)</div>
+                        </div>
+                        <img id="imgPreview" src="" alt="" style="display:none;max-height:180px;border-radius:8px;object-fit:cover;" />
+                    }
+                </div>
+                <input type="file" id="imageFile" name="ImageFile"
+                       accept=".jpg,.jpeg,.png,.webp,image/*"
+                       style="display:none" onchange="handleImgSelect(this)" />
+                <input asp-for="ImageUrl" type="hidden" id="currentImageUrl" />
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Trạng thái</label>
+                <div class="form-check form-switch mt-2">
+                    <input type="checkbox" name="IsActive" class="form-check-input" role="switch"
+                           value="true" @(Model.IsActive == true ? "checked" : "") />
+                    <label class="form-check-label">Hiển thị trên app</label>
+                </div>
+            </div>
+            <div class="col-12 pt-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg me-1"></i>Cập nhật</button>
+                <a href="/POI" class="btn btn-outline-secondary ms-2">Hủy</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Styles {
+<style>
+.upload-area {
+    border: 2px dashed #dde1ee; border-radius: 10px;
+    padding: 28px; text-align: center; cursor: pointer;
+    transition: all .2s; background: #fafbff; min-height: 120px;
+    display: flex; align-items: center; justify-content: center;
+}
+.upload-area:hover { border-color: #f5a623; background: rgba(245,166,35,.04); }
+.upload-area.has-file { border-color: #3ecf8e; background: rgba(62,207,142,.05); padding: 12px; }
+</style>
+}
+@section Scripts {
+<script>
+function handleImgSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const preview = document.getElementById('imgPreview');
+    preview.src = url;
+    preview.style.display = 'block';
+    document.getElementById('imgPlaceholder').style.display = 'none';
+    document.getElementById('imgUploadArea').classList.add('has-file');
+}
+</script>
+}

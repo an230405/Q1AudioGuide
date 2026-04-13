@@ -1,0 +1,50 @@
+@model List<TranslationViewModel>
+@{ ViewData["Title"] = "Quản lý Bản dịch"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">Tổng: <strong>@Model.Count</strong> bản dịch</p>
+    <a href="/Translation/Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Thêm bản dịch</a>
+</div>
+
+<div class="admin-table">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Địa điểm</th>
+                <th>Ngôn ngữ</th>
+                <th>Tiêu đề</th>
+                <th>Nội dung</th>
+                <th>Ngày tạo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-translate fs-2 d-block mb-2"></i>Chưa có bản dịch nào</td></tr>
+            }
+            @foreach (var t in Model)
+            {
+                <tr>
+                    <td class="text-muted" style="font-size:12px;">#@t.Id</td>
+                    <td>@t.PoiName</td>
+                    <td><span class="badge bg-light text-dark">@t.LanguageName</span></td>
+                    <td class="fw-500">@t.Title</td>
+                    <td style="font-size:12px;color:#7a8099;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        @t.Content
+                    </td>
+                    <td style="font-size:12px;color:#7a8099;">@t.CreatedAt?.ToString("dd/MM/yyyy")</td>
+                    <td class="text-end">
+                        <a href="/Translation/Edit/@t.Id" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
+                        <form method="post" action="/Translation/Delete/@t.Id" style="display:inline"
+                              onsubmit="return confirm('Xóa bản dịch này?')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

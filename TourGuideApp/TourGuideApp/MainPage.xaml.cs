@@ -5,52 +5,56 @@ public partial class MainPage : ContentPage
     readonly Services.ApiService _apiService = new Services.ApiService();
     List<Models.POI> _danhSachDiaDiem = new List<Models.POI>();
 
+    // ĐÃ THÊM: Khai báo danh sách ngôn ngữ để không bị lỗi gạch đỏ
+    List<Models.Language> _danhSachNgonNgu = new List<Models.Language>();
+
     public MainPage()
     {
         InitializeComponent();
     }
 
-    private void OnLanguageChanged(object sender, EventArgs e)
+    protected override async void OnAppearing()
     {
-        var idx = langPicker.SelectedIndex;
-        if (idx == 0) // Tiếng Việt
+        base.OnAppearing();
+
+        // Lấy danh sách ngôn ngữ từ Admin API
+        var langs = await _apiService.GetLanguages();
+        if (langs != null && langs.Count > 0)
         {
-            lblSubTitle.Text = "Người bạn đồng hành trên mọi nẻo đường";
-            lblFeature1.Text = "Chỉ đường";
-            lblFeature2.Text = "Thuyết minh";
-            lblFeature3.Text = "Đa ngôn ngữ";
-            btnStart.Text = "KHÁM PHÁ NGAY";
-            lblLoading.Text = "Đang chuẩn bị hành trình...";
-        }
-        else if (idx == 1) // English
-        {
-            lblSubTitle.Text = "Your companion on every road";
-            lblFeature1.Text = "Navigation";
-            lblFeature2.Text = "Audio Guide";
-            lblFeature3.Text = "Multi-lang";
-            btnStart.Text = "EXPLORE NOW";
-            lblLoading.Text = "Preparing journey...";
-        }
-        else if (idx == 2) // 中文
-        {
-            lblSubTitle.Text = "每条路上的伙伴";
-            lblFeature1.Text = "导航";
-            lblFeature2.Text = "语音导览";
-            lblFeature3.Text = "多语言";
-            btnStart.Text = "立即探索";
-            lblLoading.Text = "正在准备行程...";
-        }
-        else if (idx == 3) // 日本語
-        {
-            lblSubTitle.Text = "あらゆる道のパートナー";
-            lblFeature1.Text = "ナビ";
-            lblFeature2.Text = "ガイド";
-            lblFeature3.Text = "多言語";
-            btnStart.Text = "今すぐ探索";
-            lblLoading.Text = "準備中...";
+            _danhSachNgonNgu = langs;
+            langPicker.ItemsSource = _danhSachNgonNgu;
+            // Chỉ hiển thị Tên (Vietnamese, Tiếng Thái) lên giao diện
+            langPicker.ItemDisplayBinding = new Binding("Name");
         }
     }
 
+    // KHI NGƯỜI DÙNG ĐỔI NGÔN NGỮ
+    private void OnLanguageChanged(object sender, EventArgs e)
+    {
+        if (langPicker.SelectedIndex == -1 || _danhSachNgonNgu.Count == 0) return;
+
+        var selectedLang = _danhSachNgonNgu[langPicker.SelectedIndex];
+
+        App.CurrentLanguage = langPicker.SelectedIndex;
+        App.CurrentLanguageCode = selectedLang.Code.ToLower();
+
+        string lang = App.CurrentLanguageCode;
+
+        // Đổi chữ trên màn hình ngay lập tức (Đã sửa đúng tên biến x:Name)
+        lblGreeting.Text = Services.AppTranslator.Get(lang, "Greeting");
+        lblTitle.Text = Services.AppTranslator.Get(lang, "Title");
+        lblSubTitle.Text = Services.AppTranslator.Get(lang, "Subtitle"); // Chữ T viết hoa
+        lblLangPrompt.Text = Services.AppTranslator.Get(lang, "Question"); // Sửa thành lblLangPrompt
+
+        // Dịch 3 tính năng ở giữa màn hình
+        lblFeature1.Text = Services.AppTranslator.Get(lang, "Nav");
+        lblFeature2.Text = Services.AppTranslator.Get(lang, "Audio");
+        lblFeature3.Text = Services.AppTranslator.Get(lang, "Multi");
+
+        // Dịch nút bấm và màn hình chờ
+        btnStart.Text = Services.AppTranslator.Get(lang, "Explore");
+        lblLoading.Text = Services.AppTranslator.Get(lang, "Loading");
+    }
     private async void OnStartClicked(object sender, EventArgs e)
     {
         if (langPicker.SelectedIndex == -1) return;
@@ -59,11 +63,13 @@ public partial class MainPage : ContentPage
         loadingOverlay.IsVisible = true;
         btnStart.IsEnabled = false;
 
-        var data = await _apiService.GetPOIs(App.CurrentLanguage);
+        // Lưu ý: Đã đổi truyền App.CurrentLanguageCode (ví dụ "th") vào thay vì truyền số
+        // (Nếu file ApiService của Anh bị gạch đỏ chỗ này, Anh mở ApiService sửa tham số int thành string nhé)
+        var data = await _apiService.GetPOIs(App.CurrentLanguageCode);
 
         if (data != null && data.Count > 0)
         {
-            string baseUrl = "https://gwsmx4vm-7182.asse.devtunnels.ms/";
+            string baseUrl = "https://f8lzzzn0-7182.asse.devtunnels.ms/";
             foreach (var item in data)
             {
                 if (!string.IsNullOrEmpty(item.ImageUrl) && !item.ImageUrl.StartsWith("http"))
@@ -82,7 +88,7 @@ public partial class MainPage : ContentPage
         {
             loadingOverlay.IsVisible = false;
             btnStart.IsEnabled = true;
-            await DisplayAlert("Lỗi", "Không tải được dữ liệu!", "OK");
+            await DisplayAlert("Error", "Unable to load data!", "OK");
         }
     }
 

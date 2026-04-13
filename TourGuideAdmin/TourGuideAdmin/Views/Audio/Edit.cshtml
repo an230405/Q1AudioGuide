@@ -1,0 +1,37 @@
+@* @model AudioViewModel
+@{ ViewData["Title"] = "Sửa Audio"; }
+
+<div class="mb-3">
+    <a href="/Audio" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+<div class="form-card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <input asp-for="Id" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Địa điểm</label>
+                <select asp-for="PoiId" asp-items="ViewBag.Pois" class="form-select">
+                    <option value="">-- Chọn địa điểm --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Ngôn ngữ</label>
+                <select asp-for="LanguageId" asp-items="ViewBag.Languages" class="form-select">
+                    <option value="">-- Chọn ngôn ngữ --</option>
+                </select>
+            </div>
+            <div class="col-md-10">
+                <label class="form-label">URL Audio</label>
+                <input asp-for="AudioUrl" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Thời lượng (giây)</label>
+                <input asp-for="Duration" type="number" class="form-control" />
+            </div>
+            <div class="col-12 pt-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg me-1"></i>Cập nhật</button>
+                <a href="/Audio" class="btn btn-outline-secondary ms-2">Hủy</a>
+            </div>
+        </div>
+    </form>
+</div> *@

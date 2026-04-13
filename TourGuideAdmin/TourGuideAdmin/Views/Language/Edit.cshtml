@@ -1,0 +1,25 @@
+@model LanguageViewModel
+@{ ViewData["Title"] = "Sửa Ngôn ngữ"; }
+
+<div class="mb-3">
+    <a href="/Language" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+<div class="form-card" style="max-width:480px;">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <input asp-for="Id" type="hidden" />
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label">Mã ngôn ngữ</label>
+                <input asp-for="Code" class="form-control" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Tên ngôn ngữ</label>
+                <input asp-for="Name" class="form-control" />
+            </div>
+            <div class="col-12 pt-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg me-1"></i>Cập nhật</button>
+                <a href="/Language" class="btn btn-outline-secondary ms-2">Hủy</a>
+            </div>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,77 @@
+@model QrCodeViewModel
+@{ ViewData["Title"] = "Tạo QR Code"; }
+
+<div class="mb-3">
+    <a href="/QrCode" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="form-card">
+            <form asp-action="Create" method="post">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Địa điểm <span class="text-danger">*</span></label>
+                        <select asp-for="PoiId" asp-items="ViewBag.Pois" class="form-select" required
+                                onchange="updatePreview()">
+                            <option value="">-- Chọn địa điểm --</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Giá trị QR</label>
+                        <input asp-for="QrValue" id="qrValueInput" class="form-control"
+                               placeholder="Để trống sẽ tự động tạo..." oninput="updatePreview()" />
+                        <div class="form-text">Nếu để trống, hệ thống tự tạo mã duy nhất cho địa điểm.</div>
+                    </div>
+                    <div class="col-12 pt-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-qr-code me-1"></i>Tạo QR Code
+                        </button>
+                        <a href="/QrCode" class="btn btn-outline-secondary ms-2">Hủy</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview QR -->
+    <div class="col-md-6">
+        <div class="form-card text-center">
+            <div class="text-muted mb-3" style="font-size:13px;">Xem trước QR Code</div>
+            <div id="qrPreview" class="d-flex justify-content-center mb-3"></div>
+            <div id="qrLabel" style="font-size:12px;color:#7a8099;">Chọn địa điểm để xem trước</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+let qrCode = null;
+
+function updatePreview() {
+    const select = document.querySelector('select[name="PoiId"]');
+    const input = document.getElementById('qrValueInput');
+    const poiName = select.options[select.selectedIndex]?.text || '';
+    const poiId = select.value;
+
+    if (!poiId) {
+        document.getElementById('qrLabel').textContent = 'Chọn địa điểm để xem trước';
+        document.getElementById('qrPreview').innerHTML = '';
+        qrCode = null;
+        return;
+    }
+
+    const value = input.value || `POI_${poiId}_PREVIEW`;
+    document.getElementById('qrLabel').textContent = value;
+
+    document.getElementById('qrPreview').innerHTML = '';
+    qrCode = new QRCode(document.getElementById('qrPreview'), {
+        text: value,
+        width: 180, height: 180,
+        colorDark: '#1a1d2e', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+    });
+}
+</script>
+}

@@ -11,14 +11,13 @@ public partial class MapPage : ContentPage
     CancellationTokenSource _cts;
 
     private bool _isNavigating = false;
-    private bool _isCentering = false; // Khóa chống bấm liên tục gây lag
+    private bool _isCentering = false;
 
     public MapPage(List<Models.POI> pois)
     {
         InitializeComponent();
         _danhSachPOI = pois;
 
-        // XÓA CÁC NÚT ZOOM MẶC ĐỊNH ĐỂ KHÔNG ĐÈ NÚT THOÁT/VỊ TRÍ
         mapView.Map.Widgets.Clear();
         mapView.Map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());
 
@@ -43,47 +42,28 @@ public partial class MapPage : ContentPage
             lblLocationName.Text = _diaDiemGanNhat.Name;
         }
 
-        // TỰ ĐỘNG BAY VỀ VỊ TRÍ KHI VỪA MỞ TRANG
         _ = CenterToUserLocation();
     }
 
+    // ==========================================
+    // 1. TỰ ĐỘNG DỊCH GIAO DIỆN KHI MỞ TRANG
+    // ==========================================
     protected override void OnAppearing()
     {
         base.OnAppearing();
         _isNavigating = false;
 
-        // DỊCH NGÔN NGỮ FOOTER VÀ CÁC NÚT (FIX LỖI TIẾNG VIỆT CỨNG)
-        if (App.CurrentLanguage == 0) // VN
+        string lang = App.CurrentLanguageCode; // Lấy mã "th", "vi", "en"...
+
+        // GỌI TỪ ĐIỂN RA XÀI - XÓA SẠCH IF-ELSE CŨ
+        btnAudio.Text = Services.AppTranslator.Get(lang, "Speak");
+        lblStatus.Text = Services.AppTranslator.Get(lang, "Near");
+        lblHome.Text = Services.AppTranslator.Get(lang, "Home");
+        lblQr.Text = Services.AppTranslator.Get(lang, "Qr");
+
+        if (_diaDiemGanNhat != null)
         {
-            btnAudio.Text = "▶ PHÁT THUYẾT MINH";
-            lblStatus.Text = "Địa điểm gần bạn:";
-            lblHome.Text = "Trang chủ";
-            lblQr.Text = "Quét QR";
-            if (_diaDiemGanNhat != null) lblDistance.Text = $"Cách bạn: {Math.Round(_diaDiemGanNhat.DistanceToUser, 2)} km";
-        }
-        else if (App.CurrentLanguage == 1) // EN
-        {
-            btnAudio.Text = "▶ PLAY AUDIO";
-            lblStatus.Text = "Nearby location:";
-            lblHome.Text = "Home";
-            lblQr.Text = "Scan QR";
-            if (_diaDiemGanNhat != null) lblDistance.Text = $"Distance: {Math.Round(_diaDiemGanNhat.DistanceToUser, 2)} km";
-        }
-        else if (App.CurrentLanguage == 2) // CN
-        {
-            btnAudio.Text = "▶ 播放语音";
-            lblStatus.Text = "附近地点：";
-            lblHome.Text = "首页";
-            lblQr.Text = "扫码";
-            if (_diaDiemGanNhat != null) lblDistance.Text = $"距离：{Math.Round(_diaDiemGanNhat.DistanceToUser, 2)} 公里";
-        }
-        else // JP
-        {
-            btnAudio.Text = "▶ 再生する";
-            lblStatus.Text = "近くの場所：";
-            lblHome.Text = "ホーム";
-            lblQr.Text = "QR読取";
-            if (_diaDiemGanNhat != null) lblDistance.Text = $"距離：{Math.Round(_diaDiemGanNhat.DistanceToUser, 2)} km";
+            lblDistance.Text = string.Format(Services.AppTranslator.Get(lang, "Dist"), Math.Round(_diaDiemGanNhat.DistanceToUser, 2));
         }
     }
 
@@ -91,7 +71,7 @@ public partial class MapPage : ContentPage
     {
         if (_isNavigating) return;
         _isNavigating = true;
-            
+
         var clickedPoi = _danhSachPOI.FirstOrDefault(p => p.Name == e.Pin.Label);
         if (clickedPoi != null)
         {
@@ -107,9 +87,6 @@ public partial class MapPage : ContentPage
         await CenterToUserLocation();
     }
 
-    // ============================================================
-    // HÀM LẤY VỊ TRÍ: ĐÃ FIX KÍCH CỠ MẶC ĐỊNH (ZOOM 15)
-    // ============================================================
     private async Task CenterToUserLocation()
     {
         if (_isCentering) return;
@@ -123,12 +100,10 @@ public partial class MapPage : ContentPage
 
             if (status == PermissionStatus.Granted)
             {
-                // Ưu tiên lấy vị trí cũ cho nhanh để bản đồ bay đi ngay
                 var location = await Geolocation.Default.GetLastKnownLocationAsync();
 
                 if (location == null)
                 {
-                    // Nếu không có mới dò tìm với độ chính xác vừa phải để tránh lag
                     var request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(3));
                     location = await Geolocation.Default.GetLocationAsync(request);
                 }
@@ -136,66 +111,77 @@ public partial class MapPage : ContentPage
                 if (location != null)
                 {
                     var userPos = SphericalMercator.FromLonLat(location.Longitude, location.Latitude);
+                    var targetPoint = new MPoint(userPos.x, userPos.y);
 
-                    // CHÌA KHÓA FIX KÍCH CỠ: Lấy Resolution tương ứng với Zoom Level 15
-                    var targetResolution = mapView.Map.Navigator.Resolutions[15];
+                    mapView.Map.Navigator.CenterOn(targetPoint);
 
-                    // Thực hiện bay với Zoom 15 trong 500ms
-                    mapView.Map.Navigator.FlyTo(new MPoint(userPos.x, userPos.y), targetResolution, 500);
+                    double zoomLevel = 15;
+                    double targetResolution = 156543.03390625 / Math.Pow(2, zoomLevel);
+
+                    mapView.Map.Navigator.ZoomTo(targetResolution);
 
                     mapView.MyLocationLayer.UpdateMyLocation(new Mapsui.UI.Maui.Position(location.Latitude, location.Longitude));
                     mapView.IsMyLocationButtonVisible = true;
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Lỗi Zoom: {ex.Message}");
+        }
         finally
         {
             _isCentering = false;
         }
     }
 
+    // ==========================================
+    // 2. TỐI ƯU HÓA NÚT PHÁT AUDIO (ĐỌC TIẾNG THÁI)
+    // ==========================================
     private async void OnPlayAudioClicked(object sender, EventArgs e)
     {
         if (_diaDiemGanNhat == null) return;
-        string textToRead = _diaDiemGanNhat.Content?.Description ?? _diaDiemGanNhat.Description;
-        if (string.IsNullOrEmpty(textToRead)) return;
+
+        // Dùng FinalDescription để luôn lấy được text chính xác
+        string textToRead = _diaDiemGanNhat.FinalDescription;
+        if (string.IsNullOrEmpty(textToRead) || textToRead.Contains("Chưa có nội dung")) return;
 
         if (_cts != null && !_cts.IsCancellationRequested)
         {
             _cts.Cancel();
-            OnAppearing();
+            OnAppearing(); // Gọi lại hàm dịch để reset chữ nút bấm
             btnAudio.BackgroundColor = Color.FromArgb("#2563EB");
             return;
         }
 
         _cts = new CancellationTokenSource();
-        if (App.CurrentLanguage == 0) btnAudio.Text = "⏹ ĐANG ĐỌC...";
-        else if (App.CurrentLanguage == 1) btnAudio.Text = "⏹ PLAYING...";
-        else if (App.CurrentLanguage == 2) btnAudio.Text = "⏹ 播放中...";
-        else btnAudio.Text = "⏹ 再生中...";
 
+        // Khi đang phát Audio thì hiện chung chữ Stop cho mọi ngôn ngữ
+        btnAudio.Text = "🛑 Stop";
         btnAudio.BackgroundColor = Color.FromArgb("#DC2626");
 
         try
         {
             var locales = await TextToSpeech.Default.GetLocalesAsync();
-            Locale selectedLocale = null;
-            if (App.CurrentLanguage == 0) selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains("vi"));
-            else if (App.CurrentLanguage == 1) selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains("en"));
-            else if (App.CurrentLanguage == 2) selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains("zh"));
-            else if (App.CurrentLanguage == 3) selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains("ja"));
+            string langCode = App.CurrentLanguageCode; // Tự bắt mã ngôn ngữ (th, vi, en)
+
+            // Tìm đúng giọng đọc của quốc gia đó
+            Locale selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains(langCode));
 
             await TextToSpeech.Default.SpeakAsync(textToRead, new SpeechOptions() { Locale = selectedLocale, Pitch = 1.0f, Volume = 1.0f }, cancelToken: _cts.Token);
-            OnAppearing(); btnAudio.BackgroundColor = Color.FromArgb("#2563EB");
         }
         catch { }
+        finally
+        {
+            OnAppearing(); // Đọc xong thì reset chữ lại
+            btnAudio.BackgroundColor = Color.FromArgb("#2563EB");
+        }
     }
 
     private async void OnScanQrClicked(object sender, TappedEventArgs e)
     {
         if (_cts != null && !_cts.IsCancellationRequested) _cts.Cancel();
-        await Navigation.PushAsync(new QRScannerPage(_danhSachPOI));
+        await Navigation.PushAsync(new QRScannerPage());
     }
 
     protected override void OnDisappearing()

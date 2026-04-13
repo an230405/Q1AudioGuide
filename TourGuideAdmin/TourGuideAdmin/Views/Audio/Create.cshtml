@@ -1,0 +1,95 @@
+@* @model AudioViewModel
+@{ ViewData["Title"] = "Thêm Audio"; }
+
+<div class="mb-3">
+    <a href="/Audio" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+<div class="form-card">
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Địa điểm <span class="text-danger">*</span></label>
+                <select asp-for="PoiId" asp-items="ViewBag.Pois" class="form-select" required>
+                    <option value="">-- Chọn địa điểm --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Ngôn ngữ <span class="text-danger">*</span></label>
+                <select asp-for="LanguageId" asp-items="ViewBag.Languages" class="form-select" required>
+                    <option value="">-- Chọn ngôn ngữ --</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Chọn file audio <span class="text-danger">*</span></label>
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('audioFile').click()">
+                    <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-2"></i>
+                    <div id="uploadText">Nhấn để chọn file audio (.mp3, .m4a, .wav, .ogg)</div>
+                    <div id="fileName" class="text-primary fw-500 mt-1" style="display:none;"></div>
+                </div>
+                <input type="file" id="audioFile" name="AudioFile"
+                       accept=".mp3,.m4a,.wav,.ogg,audio/*"
+                       style="display:none"
+                       onchange="handleFileSelect(this)" />
+                <div class="mt-2">
+                    <a href="#" onclick="toggleUrlInput(); return false;" style="font-size:12px;color:#7a8099;">
+                        Hoặc nhập URL trực tiếp
+                    </a>
+                </div>
+                <div id="urlInputArea" style="display:none; margin-top:8px;">
+                    <input asp-for="AudioUrl" class="form-control" placeholder="https://..." />
+                </div>
+            </div>
+
+            <div class="col-12" id="audioPreview" style="display:none;">
+                <label class="form-label">Nghe thử</label>
+                <audio id="audioPlayer" controls style="width:100%; border-radius:8px;"></audio>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Thời lượng (giây)</label>
+                <input asp-for="Duration" id="durationInput" type="number" class="form-control" placeholder="Tự động tính khi chọn file" />
+            </div>
+
+            <div class="col-12 pt-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg me-1"></i>Lưu</button>
+                <a href="/Audio" class="btn btn-outline-secondary ms-2">Hủy</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Styles {
+<style>
+.upload-area {
+    border: 2px dashed #dde1ee; border-radius: 10px;
+    padding: 32px; text-align: center; cursor: pointer;
+    transition: all .2s; background: #fafbff;
+}
+.upload-area:hover { border-color: #f5a623; background: rgba(245,166,35,.04); }
+.upload-area.has-file { border-color: #3ecf8e; background: rgba(62,207,142,.05); }
+</style>
+}
+
+@section Scripts {
+<script>
+function handleFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('fileName').textContent = '✓ ' + file.name;
+    document.getElementById('fileName').style.display = 'block';
+    document.getElementById('uploadArea').classList.add('has-file');
+    const url = URL.createObjectURL(file);
+    const player = document.getElementById('audioPlayer');
+    player.src = url;
+    document.getElementById('audioPreview').style.display = 'block';
+    player.onloadedmetadata = function() {
+        document.getElementById('durationInput').value = Math.round(player.duration);
+    };
+}
+function toggleUrlInput() {
+    const area = document.getElementById('urlInputArea');
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+} *@

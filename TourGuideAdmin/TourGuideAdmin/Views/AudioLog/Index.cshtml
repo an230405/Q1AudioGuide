@@ -1,0 +1,35 @@
+@* @model List<AudioLogViewModel>
+@{ ViewData["Title"] = "Nhật ký phát Audio"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">Tổng: <strong>@Model.Count</strong> lượt phát</p>
+</div>
+<div class="admin-table">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Device ID</th>
+                <th>Địa điểm</th>
+                <th>Ngôn ngữ</th>
+                <th>Thời gian phát</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-journal-text fs-2 d-block mb-2"></i>Chưa có nhật ký nào</td></tr>
+            }
+            @foreach (var log in Model.OrderByDescending(l => l.PlayTime))
+            {
+                <tr>
+                    <td class="text-muted" style="font-size:12px;">#@log.Id</td>
+                    <td><code style="font-size:12px;">@log.DeviceId</code></td>
+                    <td>@log.PoiName</td>
+                    <td><span class="badge bg-light text-dark">@log.LanguageName</span></td>
+                    <td style="font-size:13px;">@log.PlayTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div> *@

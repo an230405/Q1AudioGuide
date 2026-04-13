@@ -1,0 +1,55 @@
+@* @model List<AudioViewModel>
+@{ ViewData["Title"] = "Quản lý Audio"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">Tổng: <strong>@Model.Count</strong> file audio</p>
+    <a href="/Audio/Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Thêm audio</a>
+</div>
+
+<div class="admin-table">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Địa điểm</th>
+                <th>Ngôn ngữ</th>
+                <th>URL Audio</th>
+                <th>Thời lượng (s)</th>
+                <th>Ngày tạo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-music-note-beamed fs-2 d-block mb-2"></i>Chưa có audio nào</td></tr>
+            }
+            @foreach (var audio in Model)
+            {
+                <tr>
+                    <td class="text-muted" style="font-size:12px;">#@audio.Id</td>
+                    <td><span class="fw-500">@audio.PoiName</span></td>
+                    <td><span class="badge bg-light text-dark">@audio.LanguageName</span></td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(audio.AudioUrl))
+                        {
+                            <a href="@audio.AudioUrl" target="_blank" class="text-decoration-none" style="font-size:12px;">
+                                <i class="bi bi-link-45deg"></i> @(audio.AudioUrl.Length > 30 ? audio.AudioUrl[..30] + "…" : audio.AudioUrl)
+                            </a>
+                        }
+                    </td>
+                    <td>@(audio.Duration.HasValue ? $"{audio.Duration}s" : "—")</td>
+                    <td style="font-size:12px;color:#7a8099;">@audio.CreatedAt?.ToString("dd/MM/yyyy")</td>
+                    <td class="text-end">
+                        <a href="/Audio/Edit/@audio.Id" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
+                        <form method="post" action="/Audio/Delete/@audio.Id" style="display:inline"
+                              onsubmit="return confirm('Xóa audio này?')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div> *@

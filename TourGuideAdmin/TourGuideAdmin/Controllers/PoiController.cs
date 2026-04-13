@@ -1,41 +1,69 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TourGuideAdmin.Models;
+using TourGuideAdmin.Services;
 
+namespace TourGuideAdmin.Controllers;
+
+[Authorize]
 public class POIController : Controller
 {
-    private readonly HttpClient _http;
+    private readonly ApiService _api;
+    private readonly IWebHostEnvironment _env;
 
-    public POIController()
+    public POIController(ApiService api, IWebHostEnvironment env)
     {
-        _http = new HttpClient();
-        _http.BaseAddress = new Uri("https://gwsmx4vm-7182.asse.devtunnels.ms/swagger/index.html");
+        _api = api;
+        _env = env;
     }
 
-    // LIST
     public async Task<IActionResult> Index()
-    {
-        var data = await _http.GetFromJsonAsync<List<POI>>("api/poi");
-        return View(data);
-    }
+        => View(await _api.GetPOIsAsync());
 
-    // CREATE GET
-    public IActionResult Create()
-    {
-        return View();
-    }
+    public IActionResult Create() => View(new PoiViewModel { IsActive = true, Radius = 30 });
 
-    // CREATE POST
     [HttpPost]
-    public async Task<IActionResult> Create(POI poi)
+    public async Task<IActionResult> Create(PoiViewModel model, IFormFile? ImageFile)
     {
-        await _http.PostAsJsonAsync("api/poi", poi);
-        return RedirectToAction("Index");
+        model.ImageUrl = await SaveImageAsync(ImageFile, model.ImageUrl);
+        var ok = await _api.CreatePOIAsync(model);
+        TempData[ok ? "Success" : "Error"] = ok ? "Thêm địa điểm thành công!" : "Lỗi khi thêm địa điểm.";
+        return RedirectToAction(nameof(Index));
     }
 
-    // DELETE
+    public async Task<IActionResult> Edit(int id)
+    {
+        var poi = await _api.GetPOIAsync(id);
+        if (poi == null) return NotFound();
+        return View(poi);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Edit(int id, PoiViewModel model, IFormFile? ImageFile)
+    {
+        model.ImageUrl = await SaveImageAsync(ImageFile, model.ImageUrl);
+        var ok = await _api.UpdatePOIAsync(id, model);
+        TempData[ok ? "Success" : "Error"] = ok ? "Cập nhật thành công!" : "Lỗi khi cập nhật.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {
-        await _http.DeleteAsync($"api/poi/{id}");
-        return RedirectToAction("Index");
+        var ok = await _api.DeletePOIAsync(id);
+        TempData[ok ? "Success" : "Error"] = ok ? "Xóa thành công!" : "Lỗi khi xóa.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<string?> SaveImageAsync(IFormFile? file, string? existingUrl)
+    {
+        if (file == null || file.Length == 0) return existingUrl;
+        var dir = Path.Combine(_env.WebRootPath, "images");
+        Directory.CreateDirectory(dir);
+        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var path = Path.Combine(dir, fileName);
+        using var stream = new FileStream(path, FileMode.Create);
+        await file.CopyToAsync(stream);
+        return $"/images/{fileName}";
     }
 }

@@ -1,0 +1,36 @@
+@model TranslationViewModel
+@{ ViewData["Title"] = "Thêm Bản dịch"; }
+
+<div class="mb-3">
+    <a href="/Translation" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+<div class="form-card">
+    <form asp-action="Create" method="post">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Địa điểm <span class="text-danger">*</span></label>
+                <select asp-for="PoiId" asp-items="ViewBag.Pois" class="form-select" required>
+                    <option value="">-- Chọn địa điểm --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Ngôn ngữ <span class="text-danger">*</span></label>
+                <select asp-for="LanguageId" asp-items="ViewBag.Languages" class="form-select" required>
+                    <option value="">-- Chọn ngôn ngữ --</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
+                <input asp-for="Title" class="form-control" placeholder="Tên địa điểm theo ngôn ngữ..." required />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Nội dung mô tả</label>
+                <textarea asp-for="Content" class="form-control" rows="5" placeholder="Nội dung thuyết minh audio..."></textarea>
+            </div>
+            <div class="col-12 pt-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-lg me-1"></i>Lưu bản dịch</button>
+                <a href="/Translation" class="btn btn-outline-secondary ms-2">Hủy</a>
+            </div>
+        </div>
+    </form>
+</div>

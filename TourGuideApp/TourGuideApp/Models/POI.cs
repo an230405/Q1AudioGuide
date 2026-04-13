@@ -1,9 +1,13 @@
-﻿namespace TourGuideApp.Models;
+﻿using System.Text.Json.Serialization;
 
-using System.Text.Json.Serialization;
+namespace TourGuideApp.Models;
 
 public class POI
 {
+    // ==========================================
+    // PHẦN THÔNG TIN CƠ BẢN (Đã dọn dẹp trùng lặp)
+    // ==========================================
+
     [JsonPropertyName("id")]
     public int Id { get; set; }
 
@@ -25,6 +29,11 @@ public class POI
     [JsonPropertyName("content")]
     public Content? Content { get; set; }
 
+    // Ánh xạ trực tiếp mô tả cấp độ cao nhất từ API (thường là tiếng Anh)
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+
     // ==========================================
     // PHẦN THÊM MỚI CHO TÍNH NĂNG ĐỊNH VỊ GPS
     // ==========================================
@@ -37,7 +46,7 @@ public class POI
     {
         get
         {
-            if (DistanceToUser == 0)
+            if (DistanceToUser <= 0)
                 return "Đang định vị...";
 
             // Nếu dưới 1km thì hiển thị số mét (m), trên 1km thì hiển thị (km)
@@ -48,7 +57,37 @@ public class POI
         }
     }
 
-    public string? Description { get; internal set; }
+
+    // ==========================================
+    // THUỘC TÍNH THÔNG MINH CHO GIAO DIỆN
+    // ==========================================
+
+    // ĐÂY LÀ DÒNG BỊ THIẾU LÀM NÓ BÁO LỖI NÈ ANH:
+    private string? _finalDescription;
+
+    // Ưu tiên lấy tiếng Việt trong Content, nếu rỗng thì mới lấy Description (tiếng Anh) ngoài cùng.
+    [JsonIgnore]
+    public string FinalDescription
+    {
+        get
+        {
+            // 1. Ưu tiên cao nhất: Nếu Google đã dịch và nhét vào hộp, thì lấy bản dịch ra xài!
+            if (!string.IsNullOrEmpty(_finalDescription))
+                return _finalDescription;
+
+            // 2. Nếu không có bản dịch, thì lấy Content tiếng Việt như cũ
+            if (Content != null && !string.IsNullOrEmpty(Content.Description))
+                return Content.Description;
+
+            // 3. Cuối cùng mới lấy tiếng Anh gốc
+            return !string.IsNullOrEmpty(Description) ? Description : "(Chưa có nội dung thuyết minh)";
+        }
+        set
+        {
+            // CHO PHÉP GHI: Mở cửa để ApiService nhét bản dịch của Google vào đây
+            _finalDescription = value;
+        }
+    }
 }
 
 public class Content

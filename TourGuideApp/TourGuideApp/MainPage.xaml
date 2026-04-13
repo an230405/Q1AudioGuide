@@ -19,9 +19,9 @@
         <VerticalStackLayout Spacing="0" VerticalOptions="FillAndExpand">
 
             <VerticalStackLayout Padding="30, 70, 30, 40" Spacing="10">
-                <Label Text="Xin chào! 👋" FontSize="20" TextColor="#DBEAFE" FontAttributes="Bold" />
-                <Label Text="Khám phá Sài Gòn" FontSize="32" FontAttributes="Bold" TextColor="White" LineHeight="1.1" />
-                <Label x:Name="lblSubTitle" Text="Người bạn đồng hành trên mọi nẻo đường" TextColor="White" Opacity="0.9" FontSize="15" />
+                <Label x:Name="lblGreeting" Text="Hello! 👋" FontSize="20" TextColor="#DBEAFE" FontAttributes="Bold" />
+                <Label x:Name="lblTitle" Text="Explore Saigon" FontSize="32" FontAttributes="Bold" TextColor="White" LineHeight="1.1" />
+                <Label x:Name="lblSubTitle" Text="Your companion on every road" TextColor="White" Opacity="0.9" FontSize="15" />
             </VerticalStackLayout>
 
             <Frame Margin="0" Padding="30, 40, 30, 30" CornerRadius="40" BackgroundColor="White" HasShadow="False" VerticalOptions="FillAndExpand">
@@ -33,41 +33,34 @@
                             <Frame HeightRequest="65" WidthRequest="65" CornerRadius="32" BackgroundColor="#EFF6FF" BorderColor="Transparent" Padding="0" HasShadow="False">
                                 <Label Text="📍" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
                             </Frame>
-                            <Label x:Name="lblFeature1" Text="Chỉ đường" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
+                            <Label x:Name="lblFeature1" Text="Navigation" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout WidthRequest="90" Spacing="8">
                             <Frame HeightRequest="65" WidthRequest="65" CornerRadius="32" BackgroundColor="#EFF6FF" BorderColor="Transparent" Padding="0" HasShadow="False">
                                 <Label Text="🎧" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
                             </Frame>
-                            <Label x:Name="lblFeature2" Text="Thuyết minh" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
+                            <Label x:Name="lblFeature2" Text="Audio Guide" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout WidthRequest="90" Spacing="8">
                             <Frame HeightRequest="65" WidthRequest="65" CornerRadius="32" BackgroundColor="#EFF6FF" BorderColor="Transparent" Padding="0" HasShadow="False">
                                 <Label Text="🌐" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
                             </Frame>
-                            <Label x:Name="lblFeature3" Text="Đa ngôn ngữ" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
+                            <Label x:Name="lblFeature3" Text="Multi-lang" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#1E3A8A" />
                         </VerticalStackLayout>
 
                     </FlexLayout>
 
                     <VerticalStackLayout Spacing="15">
-                        <Label Text="Bạn muốn dùng ngôn ngữ nào?" FontSize="16" FontAttributes="Bold" TextColor="#475569" HorizontalOptions="Center" />
+                        <Label x:Name="lblLangPrompt" Text="Which language do you prefer?" FontSize="16" FontAttributes="Bold" TextColor="#475569" HorizontalOptions="Center" />
 
                         <Frame Padding="15, 0" CornerRadius="20" BackgroundColor="#F1F5F9" BorderColor="Transparent" HasShadow="False" HeightRequest="60">
-                            <Picker x:Name="langPicker" Title="Chạm để chọn..." FontSize="17" TextColor="#1E293B" HorizontalTextAlignment="Center" SelectedIndexChanged="OnLanguageChanged">
-                                <Picker.Items>
-                                    <x:String>🇻🇳 Tiếng Việt</x:String>
-                                    <x:String>🇬🇧 English</x:String>
-                                    <x:String>🇨🇳 中文</x:String>
-                                    <x:String>🇯🇵 日本語</x:String>
-                                </Picker.Items>
-                            </Picker>
+                            <Picker x:Name="langPicker" Title="Tap to select..." FontSize="17" TextColor="#1E293B" HorizontalTextAlignment="Center" SelectedIndexChanged="OnLanguageChanged" />
                         </Frame>
                     </VerticalStackLayout>
 
-                    <Button x:Name="btnStart" Text="KHÁM PHÁ NGAY" Clicked="OnStartClicked"
+                    <Button x:Name="btnStart" Text="EXPLORE NOW" Clicked="OnStartClicked"
                             BackgroundColor="#2563EB" TextColor="White" FontAttributes="Bold" FontSize="17"
                             CornerRadius="20" HeightRequest="65" VerticalOptions="End">
                         <Button.Shadow>
@@ -79,12 +72,13 @@
             </Frame>
         </VerticalStackLayout>
 
-        <Grid x:Name="loadingOverlay" BackgroundColor="White" IsVisible="False">
+        <Grid x:Name="loadingOverlay" BackgroundColor="#CCFFFFFF" IsVisible="False">
             <VerticalStackLayout VerticalOptions="Center" Spacing="25">
                 <ActivityIndicator IsRunning="True" Color="#2563EB" Scale="1.5" />
-                <Label x:Name="lblLoading" Text="Đang chuẩn bị hành trình..." TextColor="#2563EB" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
+                <Label x:Name="lblLoading" Text="Preparing journey..." TextColor="#2563EB" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>
 
     </Grid>
 </ContentPage>
+    
