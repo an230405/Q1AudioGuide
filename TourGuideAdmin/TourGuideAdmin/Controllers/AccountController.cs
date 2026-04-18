@@ -59,4 +59,11 @@ public class AccountController : Controller
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Login");
     }
+    [HttpGet]
+    public IActionResult AccessDenied()
+    {
+        // Khi viewer cố tình vào trang của Admin, đá nó về lại trang chủ luôn cho gọn!
+        TempData["Error"] = "Bạn không có quyền truy cập vào chức năng này!";
+        return RedirectToAction("Index", "Home");
+    }
 }

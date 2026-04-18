@@ -16,20 +16,22 @@ public class HomeController : Controller
         try
         {
             var pois = await _api.GetPOIsAsync();
-            var audios = await _api.GetAudiosAsync();
             var translations = await _api.GetTranslationsAsync();
             var languages = await _api.GetLanguagesAsync();
             var users = await _api.GetUsersAsync();
             var logs = await _api.GetAudioLogsAsync();
 
+            // Lấy số người đang Online hiện tại!
+            int onlineCount = await _api.GetActiveUserCountAsync();
+
             var vm = new DashboardViewModel
             {
                 TotalPOIs = pois.Count,
-                TotalAudios = audios.Count,
                 TotalTranslations = translations.Count,
                 TotalLanguages = languages.Count,
                 TotalUsers = users.Count,
                 TotalAudioLogs = logs.Count,
+                ActiveUsersOnline = onlineCount, // 👉 Đẩy số ra giao diện
                 RecentLogs = logs.OrderByDescending(l => l.PlayTime).Take(10).ToList(),
                 RecentPOIs = pois.Take(5).ToList()
             };
@@ -39,5 +41,12 @@ public class HomeController : Controller
         {
             return View(new DashboardViewModel());
         }
+    }
+    [HttpGet]
+    public async Task<IActionResult> GetOnlineCount()
+    {
+        // Gọi sang Web API để lấy con số mới nhất
+        int count = await _api.GetActiveUserCountAsync();
+        return Json(new { count = count });
     }
 }

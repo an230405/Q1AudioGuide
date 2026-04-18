@@ -32,7 +32,9 @@ public class POI
     // Ánh xạ trực tiếp mô tả cấp độ cao nhất từ API (thường là tiếng Anh)
     [JsonPropertyName("description")]
     public string? Description { get; set; }
-
+    public int ViewCount { get; set; }
+    public int ListenCount { get; set; }
+    public int PriorityScore { get; set; }
 
     // ==========================================
     // PHẦN THÊM MỚI CHO TÍNH NĂNG ĐỊNH VỊ GPS

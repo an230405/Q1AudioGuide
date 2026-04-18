@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace TourGuideAdmin.Controllers;
 
-[Authorize]
+// 👉 KHÓA TOÀN BỘ CLASS: Cấm cửa tuyệt đối ai không phải là Admin
+[Authorize(Roles = "admin,Admin")]
 public class UserController : Controller
 {
     private readonly ApiService _api;
@@ -29,11 +30,24 @@ public class UserController : Controller
         return View(u);
     }
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Edit(int id, UserViewModel model)
     {
+        // Nếu Anh có dùng mã hóa BCrypt như em hướng dẫn lúc nãy, 
+        // thì nhớ kiểm tra: nếu Password không rỗng thì mới băm rồi gửi đi.
+
         var ok = await _api.UpdateUserAsync(id, model);
-        TempData[ok ? "Success" : "Error"] = ok ? "Cập nhật thành công!" : "Lỗi khi cập nhật.";
+
+        if (ok)
+        {
+            TempData["Success"] = "Cập nhật thông tin người dùng thành công!";
+        }
+        else
+        {
+            TempData["Error"] = "Có lỗi xảy ra khi cập nhật người dùng.";
+        }
+
         return RedirectToAction(nameof(Index));
     }
 

@@ -11,6 +11,9 @@ public class PoiViewModel
     public string? ImageUrl { get; set; }
     public bool? IsActive { get; set; }
     public DateTime? CreatedAt { get; set; }
+    public int ViewCount { get; set; }
+    public int ListenCount { get; set; }
+    public int PriorityScore { get; set; }
 }
 
 public class AudioViewModel
@@ -48,6 +51,7 @@ public class UserViewModel
 {
     public int Id { get; set; }
     public string? Username { get; set; }
+    public string? Password { get; set; }
     public string? Role { get; set; }
     public DateTime? CreatedAt { get; set; }
 }
@@ -78,6 +82,7 @@ public class DashboardViewModel
     public int TotalLanguages { get; set; }
     public int TotalUsers { get; set; }
     public int TotalAudioLogs { get; set; }
+    public int ActiveUsersOnline { get; set; }
     public List<AudioLogViewModel> RecentLogs { get; set; } = new();
     public List<PoiViewModel> RecentPOIs { get; set; } = new();
 }

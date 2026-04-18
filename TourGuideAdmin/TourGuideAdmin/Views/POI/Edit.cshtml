@@ -1,22 +1,35 @@
 @model PoiViewModel
 @{ ViewData["Title"] = "Sửa địa điểm"; }
 
-<div class="mb-3">
+<div class="mb-3 d-flex justify-content-between align-items-center">
     <a href="/POI" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+<div class="alert alert-info d-flex justify-content-around py-2 mb-4 border-0 shadow-sm" style="background-color: #f0f7ff;">
+    <span><i class="bi bi-eye text-primary"></i> Đã xem chi tiết: <strong class="text-primary fs-5">@Model.ViewCount</strong> lượt</span>
+    <span><i class="bi bi-headphones text-success"></i> Đã nghe Audio: <strong class="text-success fs-5">@Model.ListenCount</strong> lượt</span>
 </div>
 
 <div class="form-card">
     <form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
         <input asp-for="Id" type="hidden" />
+        <input asp-for="ViewCount" type="hidden" />
+        <input asp-for="ListenCount" type="hidden" />
+
         <div class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <label class="form-label">Tên địa điểm <span class="text-danger">*</span></label>
                 <input asp-for="Name" class="form-control" required />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Bán kính phát hiện (m)</label>
                 <input asp-for="Radius" type="number" class="form-control" />
             </div>
+            <div class="col-md-3">
+                <label class="form-label text-warning fw-bold"><i class="bi bi-star-fill"></i> Độ ưu tiên</label>
+                <input asp-for="PriorityScore" type="number" min="1" class="form-control" />
+            </div>
+
             <div class="col-md-6">
                 <label class="form-label">Vĩ độ (Latitude)</label>
                 <input asp-for="Latitude" type="number" step="any" class="form-control" required />
@@ -30,7 +43,6 @@
                 <textarea asp-for="Description" class="form-control" rows="3"></textarea>
             </div>
 
-            <!-- Upload ảnh -->
             <div class="col-12">
                 <label class="form-label">Hình ảnh địa điểm</label>
                 <div class="upload-area @(!string.IsNullOrEmpty(Model.ImageUrl) ? "has-file" : "")"

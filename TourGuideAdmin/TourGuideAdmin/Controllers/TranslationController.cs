@@ -12,6 +12,7 @@ public class TranslationController : Controller
     private readonly ApiService _api;
     public TranslationController(ApiService api) => _api = api;
 
+    // Ai đăng nhập cũng được xem danh sách
     public async Task<IActionResult> Index()
         => View(await _api.GetTranslationsAsync());
 
@@ -23,8 +24,11 @@ public class TranslationController : Controller
         ViewBag.Languages = new SelectList(langs, "Id", "Name", selectedLang);
     }
 
+    // --- BẮT ĐẦU VÙNG CẤM CỦA ADMIN ---
+    [Authorize(Roles = "admin,Admin")]
     public async Task<IActionResult> Create() { await PopulateDropdowns(); return View(new TranslationViewModel()); }
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(TranslationViewModel model)
     {
@@ -34,6 +38,7 @@ public class TranslationController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "admin,Admin")]
     public async Task<IActionResult> Edit(int id)
     {
         var t = await _api.GetTranslationAsync(id);
@@ -42,6 +47,7 @@ public class TranslationController : Controller
         return View(t);
     }
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Edit(int id, TranslationViewModel model)
     {
@@ -51,6 +57,7 @@ public class TranslationController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {

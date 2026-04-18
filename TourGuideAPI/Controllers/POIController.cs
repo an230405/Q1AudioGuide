@@ -53,7 +53,6 @@ namespace TourGuideAPI.Controllers
             return await query.Select(p => new
             {
                 p.Id,
-                // Ưu tiên lấy Title trong bản dịch làm Name
                 Name = p.Translations
                     .Where(t => t.Language != null && t.Language.Code.ToLower() == langCode)
                     .Select(t => t.Title)
@@ -62,14 +61,18 @@ namespace TourGuideAPI.Controllers
                 p.Longitude,
                 p.Radius,
                 p.ImageUrl,
-                // Lấy nội dung dài (Content) làm Description
                 Description = p.Translations
-    .Where(t => t.Language != null && t.Language.Code.ToLower() == langCode)
-    .Select(t => t.Content) // Lấy ô Content (nội dung dài) của bản dịch
-    .FirstOrDefault() ?? p.Description, // Nếu không có bản dịch mới lấy Description gốc
+                    .Where(t => t.Language != null && t.Language.Code.ToLower() == langCode)
+                    .Select(t => t.Content)
+                    .FirstOrDefault() ?? p.Description,
                 p.IsActive,
                 p.CreatedAt,
-                // Giữ nguyên cấu trúc Content cũ để App không bị lỗi
+
+                // 👉 CHÍNH LÀ 3 DÒNG NÀY ĐANG BỊ THIẾU NÈ ANH:
+                p.ViewCount,
+                p.ListenCount,
+                p.PriorityScore,
+
                 Content = p.Translations
                     .Where(c => c.Language != null && c.Language.Code.ToLower() == langCode)
                     .Select(c => new
@@ -102,8 +105,17 @@ namespace TourGuideAPI.Controllers
         public async Task<IActionResult> UpdatePOI(int id, [FromBody] Poi poi)
         {
             if (id != poi.Id) return BadRequest();
+
             _context.Entry(poi).State = EntityState.Modified;
+
+            // Không cho phép sửa ngày tạo
             _context.Entry(poi).Property(x => x.CreatedAt).IsModified = false;
+
+            // 👉 CỰC KỲ QUAN TRỌNG: Khóa 2 cột này lại. 
+            // Tránh trường hợp Admin vô tình bấm Cập nhật làm reset số lượt xem/nghe về 0
+            _context.Entry(poi).Property(x => x.ViewCount).IsModified = false;
+            _context.Entry(poi).Property(x => x.ListenCount).IsModified = false;
+
             try { await _context.SaveChangesAsync(); }
             catch (DbUpdateConcurrencyException)
             {
@@ -121,6 +133,28 @@ namespace TourGuideAPI.Controllers
             _context.Pois.Remove(poi);
             await _context.SaveChangesAsync();
             return NoContent();
+        }// 1. Hàm tăng lượt xem (ViewCount)
+        [HttpPost("{id}/increase-view")]
+        public async Task<IActionResult> IncreaseView(int id)
+        {
+            var poi = await _context.Pois.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            poi.ViewCount++; // Tăng thêm 1
+            await _context.SaveChangesAsync(); // Lưu vào Database
+            return Ok(new { currentViews = poi.ViewCount });
+        }
+
+        // 2. Hàm tăng lượt nghe (ListenCount)
+        [HttpPost("{id}/increase-listen")]
+        public async Task<IActionResult> IncreaseListen(int id)
+        {
+            var poi = await _context.Pois.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            poi.ListenCount++; // Tăng thêm 1
+            await _context.SaveChangesAsync(); // Lưu vào Database
+            return Ok(new { currentListens = poi.ListenCount });
         }
     }
 }

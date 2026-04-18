@@ -17,11 +17,15 @@ public class POIController : Controller
         _env = env;
     }
 
+    // Ai đăng nhập cũng được xem danh sách
     public async Task<IActionResult> Index()
         => View(await _api.GetPOIsAsync());
 
+    // --- BẮT ĐẦU VÙNG CẤM CỦA ADMIN ---
+    [Authorize(Roles = "admin,Admin")]
     public IActionResult Create() => View(new PoiViewModel { IsActive = true, Radius = 30 });
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(PoiViewModel model, IFormFile? ImageFile)
     {
@@ -31,6 +35,7 @@ public class POIController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "admin,Admin")]
     public async Task<IActionResult> Edit(int id)
     {
         var poi = await _api.GetPOIAsync(id);
@@ -38,6 +43,7 @@ public class POIController : Controller
         return View(poi);
     }
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Edit(int id, PoiViewModel model, IFormFile? ImageFile)
     {
@@ -47,6 +53,7 @@ public class POIController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "admin,Admin")]
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {

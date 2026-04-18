@@ -124,32 +124,27 @@
            href="/POI">
             <i class="bi bi-geo-alt"></i> Địa điểm (POI)
         </a>
-        @* <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audio" ? "active" : "")"
-           href="/Audio">
-            <i class="bi bi-music-note-beamed"></i> Audio
-        </a> *@
         <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Translation" ? "active" : "")"
            href="/Translation">
             <i class="bi bi-translate"></i> Bản dịch
         </a>
 
-        <div class="nav-section-label">Hệ thống</div>
-        <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Language" ? "active" : "")"
-           href="/Language">
-            <i class="bi bi-globe"></i> Ngôn ngữ
-        </a>
-        <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "User" ? "active" : "")"
-           href="/User">
-            <i class="bi bi-people"></i> Người dùng
-        </a>
-        @* <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AudioLog" ? "active" : "")"
-           href="/AudioLog">
-            <i class="bi bi-journal-text"></i> Nhật ký phát
-        </a> *@
-        <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "QrCode" ? "active" : "")"
-           href="/QrCode">
-            <i class="bi bi-qr-code"></i> QR Code
-        </a>
+        @if (User.IsInRole("admin") || User.IsInRole("Admin"))
+        {
+            <div class="nav-section-label">Hệ thống</div>
+            <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Language" ? "active" : "")"
+               href="/Language">
+                <i class="bi bi-globe"></i> Ngôn ngữ
+            </a>
+            <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "User" ? "active" : "")"
+               href="/User">
+                <i class="bi bi-people"></i> Người dùng
+            </a>
+            <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "QrCode" ? "active" : "")"
+               href="/QrCode">
+                <i class="bi bi-qr-code"></i> QR Code
+            </a>
+        }
     </nav>
     <div class="sidebar-footer">
         <span class="api-badge"><span class="dot"></span> API đang kết nối</span>

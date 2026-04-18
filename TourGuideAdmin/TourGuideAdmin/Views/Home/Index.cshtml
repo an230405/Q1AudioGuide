@@ -13,7 +13,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-2 col-md-4 col-6">
+    @* <div class="col-xl-2 col-md-4 col-6">
         <div class="stat-card">
             <div class="d-flex align-items-center gap-3">
                 <div class="stat-icon" style="background:rgba(96,165,250,.12);color:#60a5fa;"><i class="bi bi-music-note-beamed"></i></div>
@@ -23,7 +23,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> *@
     <div class="col-xl-2 col-md-4 col-6">
         <div class="stat-card">
             <div class="d-flex align-items-center gap-3">
@@ -53,11 +53,25 @@
                 <div>
                     <div class="stat-num">@Model.TotalUsers</div>
                     <div class="stat-label">Người dùng</div>
+                    
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-2 col-md-4 col-6">
+        <div class="stat-card" style="border: 1px solid #0066CC;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:rgba(0,102,204,.12);color:#0066CC;">
+                    <i class="bi bi-broadcast"></i>
+                </div>
+                <div>
+                    <div class="stat-num" id="online-count" style="color:#0066CC;">@Model.ActiveUsersOnline</div>
+                    <div class="stat-label">Đang Online</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @* <div class="col-xl-2 col-md-4 col-6">
         <div class="stat-card">
             <div class="d-flex align-items-center gap-3">
                 <div class="stat-icon" style="background:rgba(251,191,36,.12);color:#fbbf24;"><i class="bi bi-journal-play"></i></div>
@@ -67,7 +81,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> *@
 </div>
 
 <div class="row g-3">
@@ -139,3 +153,25 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        // Cứ mỗi 3 giây (3000ms) sẽ tự động chạy hàm lấy số Online
+        setInterval(function () {
+            fetch('/Home/GetOnlineCount') // Nó sẽ gọi vào một hàm phụ trong Controller
+                .then(response => response.json())
+                .then(data => {
+                    // Tìm đến cái ô có ID là "online-count" để thay số mới vào
+                    const countElement = document.getElementById('online-count');
+                    if (countElement) {
+                        countElement.innerText = data.count;
+                        
+                        // Hiệu ứng nháy xanh nhẹ một cái cho chuyên nghiệp
+                        countElement.style.transition = "0.3s";
+                        countElement.style.opacity = "0.5";
+                        setTimeout(() => countElement.style.opacity = "1", 300);
+                    }
+                })
+                .catch(err => Console.log("Lỗi lấy số online:", err));
+        }, 3000);
+    </script>
+}

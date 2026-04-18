@@ -8,14 +8,19 @@
 <div class="form-card">
     <form asp-action="Create" method="post" enctype="multipart/form-data">
         <div class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <label class="form-label">Tên địa điểm <span class="text-danger">*</span></label>
                 <input asp-for="Name" class="form-control" placeholder="VD: Chợ Bến Thành" required />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Bán kính phát hiện (m)</label>
                 <input asp-for="Radius" type="number" class="form-control" placeholder="30" />
             </div>
+            <div class="col-md-3">
+                <label class="form-label text-warning fw-bold"><i class="bi bi-star-fill"></i> Độ ưu tiên</label>
+                <input asp-for="PriorityScore" type="number" min="1" class="form-control" placeholder="1" value="1" />
+            </div>
+
             <div class="col-md-6">
                 <label class="form-label">Vĩ độ (Latitude) <span class="text-danger">*</span></label>
                 <input asp-for="Latitude" type="number" step="any" class="form-control" placeholder="10.7769" required />
@@ -29,7 +34,6 @@
                 <textarea asp-for="Description" class="form-control" rows="3" placeholder="Mô tả ngắn về địa điểm..."></textarea>
             </div>
 
-            <!-- Upload ảnh -->
             <div class="col-12">
                 <label class="form-label">Hình ảnh địa điểm</label>
                 <div class="upload-area" id="imgUploadArea" onclick="document.getElementById('imageFile').click()">

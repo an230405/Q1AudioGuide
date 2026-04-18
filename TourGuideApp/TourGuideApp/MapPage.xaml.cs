@@ -1,3 +1,4 @@
+//using Android.Bluetooth.LE;
 using Mapsui;
 using Mapsui.Projections;
 using System.Globalization;
@@ -12,6 +13,10 @@ public partial class MapPage : ContentPage
 
     private bool _isNavigating = false;
     private bool _isCentering = false;
+
+    // Khai báo biến cho hệ thống Tracking
+    private string _deviceId;
+    private IDispatcherTimer _pingTimer;
 
     public MapPage(List<Models.POI> pois)
     {
@@ -46,16 +51,23 @@ public partial class MapPage : ContentPage
     }
 
     // ==========================================
-    // 1. TỰ ĐỘNG DỊCH GIAO DIỆN KHI MỞ TRANG
+    // 1. TỰ ĐỘNG DỊCH & BẬT CẢM BIẾN MẠNG KHI MỞ TRANG
     // ==========================================
     protected override void OnAppearing()
     {
         base.OnAppearing();
         _isNavigating = false;
 
-        string lang = App.CurrentLanguageCode; // Lấy mã "th", "vi", "en"...
+        // --- HỆ THỐNG TRACKING ONLINE ---
+        if (string.IsNullOrEmpty(_deviceId))
+        {
+            // Tự động tạo một cái tên riêng biệt cho điện thoại này (Vd: iPhone_8A1B)
+            _deviceId = DeviceInfo.Current.Name.Replace(" ", "") + "_" + Guid.NewGuid().ToString().Substring(0, 5);
+        }
+        SetupNetworkTracking(); // Bật đồng hồ nhịp tim
 
-        // GỌI TỪ ĐIỂN RA XÀI - XÓA SẠCH IF-ELSE CŨ
+        // --- HỆ THỐNG DỊCH GIAO DIỆN ---
+        string lang = App.CurrentLanguageCode;
         btnAudio.Text = Services.AppTranslator.Get(lang, "Speak");
         lblStatus.Text = Services.AppTranslator.Get(lang, "Near");
         lblHome.Text = Services.AppTranslator.Get(lang, "Home");
@@ -67,6 +79,69 @@ public partial class MapPage : ContentPage
         }
     }
 
+    // ==========================================
+    // CÁC HÀM XỬ LÝ NHỊP TIM VÀ ONLINE/OFFLINE
+    // ==========================================
+    private void SetupNetworkTracking()
+    {
+        // 1. Kiểm tra ngay lúc mới mở app có mạng không
+        UpdateNetworkStatus(Connectivity.Current.NetworkAccess == NetworkAccess.Internet);
+
+        // 2. Lắng nghe lúc khách tắt/bật Wifi
+        Connectivity.Current.ConnectivityChanged += Current_ConnectivityChanged;
+
+        // 3. Cài đồng hồ 5 giây gửi tín hiệu báo cáo cho Admin 1 lần
+        if (_pingTimer == null)
+        {
+            _pingTimer = Dispatcher.CreateTimer();
+            _pingTimer.Interval = TimeSpan.FromSeconds(5);
+            _pingTimer.Tick += async (s, e) =>
+            {
+                if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                {
+                    var apiService = Handler?.MauiContext?.Services.GetService<Services.ApiService>() ?? new Services.ApiService();
+                    await apiService.PingTrackingAsync(_deviceId);
+                }
+            };
+        }
+        _pingTimer.Start();
+    }
+
+    private void Current_ConnectivityChanged(object sender, ConnectivityChangedEventArgs e)
+    {
+        UpdateNetworkStatus(e.NetworkAccess == NetworkAccess.Internet);
+    }
+
+    private void UpdateNetworkStatus(bool isOnline)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Nhớ đổi tên ở chỗ kiểm tra null này nữa nhé
+            if (frmNetworkStatus != null && dotStatus != null && lblNetStatus != null)
+            {
+                if (isOnline)
+                {
+                    frmNetworkStatus.BackgroundColor = Color.FromArgb("#dcfce7");
+                    dotStatus.Color = Color.FromArgb("#22c55e");
+
+                    lblNetStatus.Text = "Online";                     // ĐỔI TÊN Ở ĐÂY
+                    lblNetStatus.TextColor = Color.FromArgb("#166534"); // ĐỔI TÊN Ở ĐÂY
+                }
+                else
+                {
+                    frmNetworkStatus.BackgroundColor = Color.FromArgb("#fee2e2");
+                    dotStatus.Color = Color.FromArgb("#ef4444");
+
+                    lblNetStatus.Text = "Offline";                    // ĐỔI TÊN Ở ĐÂY
+                    lblNetStatus.TextColor = Color.FromArgb("#991b1b"); // ĐỔI TÊN Ở ĐÂY
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // CÁC CHỨC NĂNG BẢN ĐỒ VÀ AUDIO
+    // ==========================================
     private async void OnPinClicked(object sender, Mapsui.UI.Maui.PinClickedEventArgs e)
     {
         if (_isNavigating) return;
@@ -110,6 +185,7 @@ public partial class MapPage : ContentPage
 
                 if (location != null)
                 {
+                    // 1. CHỈNH TÂM BẢN ĐỒ VÀO CHẤM XANH
                     var userPos = SphericalMercator.FromLonLat(location.Longitude, location.Latitude);
                     var targetPoint = new MPoint(userPos.x, userPos.y);
 
@@ -122,6 +198,80 @@ public partial class MapPage : ContentPage
 
                     mapView.MyLocationLayer.UpdateMyLocation(new Mapsui.UI.Maui.Position(location.Latitude, location.Longitude));
                     mapView.IsMyLocationButtonVisible = true;
+
+                    // ================================================================
+                    // 🚀 BƯỚC MỚI: TÍNH KHOẢNG CÁCH VÀ TÌM ĐỊA ĐIỂM GẦN NHẤT THỰC TẾ
+                    // ================================================================
+                    if (_danhSachPOI != null && _danhSachPOI.Count > 0)
+                    {
+                        foreach (var poi in _danhSachPOI)
+                        {
+                            double pLat = Convert.ToDouble(poi.Latitude.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                            double pLon = Convert.ToDouble(poi.Longitude.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+
+                            var poiLocation = new Location(pLat, pLon);
+
+                            // MAUI hỗ trợ sẵn hàm đo khoảng cách đường chim bay cực xịn
+                            poi.DistanceToUser = Location.CalculateDistance(location, poiLocation, DistanceUnits.Kilometers);
+                        }
+
+                        // Áp dụng thuật toán: Tìm đứa gần nhất, nếu bằng nhau thì đứa nào Độ ưu tiên cao hơn sẽ thắng
+                        _diaDiemGanNhat = _danhSachPOI
+                            .OrderBy(p => p.DistanceToUser)
+                            .ThenByDescending(p => p.PriorityScore)
+                            .FirstOrDefault();
+
+                        // Cập nhật lại giao diện ngay lập tức
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            if (_diaDiemGanNhat != null)
+                            {
+                                lblLocationName.Text = _diaDiemGanNhat.Name;
+                                string lang = App.CurrentLanguageCode;
+                                lblDistance.Text = string.Format(Services.AppTranslator.Get(lang, "Dist"), Math.Round(_diaDiemGanNhat.DistanceToUser, 2));
+                            }
+                        });
+                        // ================================================================
+                        // 🚀 BƯỚC MỚI: TÍNH KHOẢNG CÁCH VÀ TÌM ĐỊA ĐIỂM GẦN NHẤT THỰC TẾ
+                        // ================================================================
+                        if (_danhSachPOI != null && _danhSachPOI.Count > 0)
+                        {
+                            foreach (var poi in _danhSachPOI)
+                            {
+                                try
+                                {
+                                    double pLat = Convert.ToDouble(poi.Latitude.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                                    double pLon = Convert.ToDouble(poi.Longitude.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+
+                                    var poiLocation = new Location(pLat, pLon);
+                                    // MAUI hỗ trợ sẵn hàm đo khoảng cách
+                                    poi.DistanceToUser = Location.CalculateDistance(location, poiLocation, DistanceUnits.Kilometers);
+                                }
+                                catch
+                                {
+                                    // BỌC THÉP Ở ĐÂY: Nếu Admin nhập sai tọa độ gây lỗi, gán khoảng cách xa vô tận
+                                    poi.DistanceToUser = 999999;
+                                }
+                            }
+
+                            // Áp dụng thuật toán: Tìm đứa gần nhất, nếu bằng nhau thì đứa nào Độ ưu tiên cao hơn sẽ thắng
+                            _diaDiemGanNhat = _danhSachPOI
+                                .OrderBy(p => p.DistanceToUser)
+                                .ThenByDescending(p => p.PriorityScore)
+                                .FirstOrDefault();
+
+                            // Cập nhật lại giao diện ngay lập tức
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                if (_diaDiemGanNhat != null)
+                                {
+                                    lblLocationName.Text = _diaDiemGanNhat.Name;
+                                    string lang = App.CurrentLanguageCode;
+                                    lblDistance.Text = string.Format(Services.AppTranslator.Get(lang, "Dist"), Math.Round(_diaDiemGanNhat.DistanceToUser, 2));
+                                }
+                            });
+                        }
+                    }
                 }
             }
         }
@@ -135,37 +285,33 @@ public partial class MapPage : ContentPage
         }
     }
 
-    // ==========================================
-    // 2. TỐI ƯU HÓA NÚT PHÁT AUDIO (ĐỌC TIẾNG THÁI)
-    // ==========================================
     private async void OnPlayAudioClicked(object sender, EventArgs e)
     {
         if (_diaDiemGanNhat == null) return;
 
-        // Dùng FinalDescription để luôn lấy được text chính xác
         string textToRead = _diaDiemGanNhat.FinalDescription;
         if (string.IsNullOrEmpty(textToRead) || textToRead.Contains("Chưa có nội dung")) return;
 
         if (_cts != null && !_cts.IsCancellationRequested)
         {
             _cts.Cancel();
-            OnAppearing(); // Gọi lại hàm dịch để reset chữ nút bấm
+            OnAppearing();
             btnAudio.BackgroundColor = Color.FromArgb("#2563EB");
             return;
         }
 
         _cts = new CancellationTokenSource();
 
-        // Khi đang phát Audio thì hiện chung chữ Stop cho mọi ngôn ngữ
         btnAudio.Text = "🛑 Stop";
         btnAudio.BackgroundColor = Color.FromArgb("#DC2626");
 
         try
         {
-            var locales = await TextToSpeech.Default.GetLocalesAsync();
-            string langCode = App.CurrentLanguageCode; // Tự bắt mã ngôn ngữ (th, vi, en)
 
-            // Tìm đúng giọng đọc của quốc gia đó
+            // MAUI hỗ trợ sẵn TextToSpeech, chỉ cần gọi lên là đọc được, cực kỳ đơn giản
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
+            string langCode = App.CurrentLanguageCode;
+
             Locale selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains(langCode));
 
             await TextToSpeech.Default.SpeakAsync(textToRead, new SpeechOptions() { Locale = selectedLocale, Pitch = 1.0f, Volume = 1.0f }, cancelToken: _cts.Token);
@@ -173,7 +319,7 @@ public partial class MapPage : ContentPage
         catch { }
         finally
         {
-            OnAppearing(); // Đọc xong thì reset chữ lại
+            OnAppearing();
             btnAudio.BackgroundColor = Color.FromArgb("#2563EB");
         }
     }
@@ -184,10 +330,17 @@ public partial class MapPage : ContentPage
         await Navigation.PushAsync(new QRScannerPage());
     }
 
+    // ==========================================
+    // DỌN DẸP KHI THOÁT KHỎI TRANG ĐỂ ĐỠ TỐN PIN
+    // ==========================================
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         if (_cts != null && !_cts.IsCancellationRequested) _cts.Cancel();
+
+        // Khách thoát khỏi bản đồ thì tắt máy đo nhịp tim
+        _pingTimer?.Stop();
+        Connectivity.Current.ConnectivityChanged -= Current_ConnectivityChanged;
     }
 
     private async void OnExitToMainClicked(object sender, EventArgs e)

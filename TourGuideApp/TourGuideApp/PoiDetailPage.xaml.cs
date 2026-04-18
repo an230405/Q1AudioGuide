@@ -18,7 +18,7 @@ public partial class PoiDetailPage : ContentPage
         DichGiaoDien();
     }
 
-    private void DichGiaoDien()
+    private async void DichGiaoDien()
     {
         var poi = BindingContext as POI;
         double dist = poi != null ? Math.Round(poi.DistanceToUser, 2) : 0;
@@ -29,7 +29,14 @@ public partial class PoiDetailPage : ContentPage
         lblQr.Text = Services.AppTranslator.Get(lang, "Qr");
         lblDistance.Text = string.Format(Services.AppTranslator.Get(lang, "Dist"), dist);
 
-            CapNhatNutNghe(false);
+        CapNhatNutNghe(false);
+
+        // 👉 THÊM MỚI: Bắn pháo sáng báo cáo Lượt Xem
+        if (poi != null)
+        {
+            var apiService = new Services.ApiService();
+            await apiService.IncreaseViewAsync(poi.Id);
+        }
     }
 
     // Tách riêng hàm đổi màu nút ra để quản lý độc quyền trên luồng chính
@@ -79,9 +86,9 @@ public partial class PoiDetailPage : ContentPage
         if (btnSpeak.Text.Contains("Stop"))
         {
             _cts?.Cancel();
-            btnSpeak.IsEnabled = false; // Khóa nút nửa giây cho loa tắt hẳn
+            btnSpeak.IsEnabled = false;
             await Task.Delay(500);
-            CapNhatNutNghe(false);      // Trả về nút Xanh
+            CapNhatNutNghe(false);
             btnSpeak.IsEnabled = true;
             return;
         }
@@ -97,14 +104,59 @@ public partial class PoiDetailPage : ContentPage
         }
 
         _cts = new CancellationTokenSource();
-        CapNhatNutNghe(true); // Sang màu Đỏ ngay lập tức!
+        CapNhatNutNghe(true);
 
+        // 🚀 BƯỚC MỚI: BẮN TÍN HIỆU "THU TIỀN" VỀ SERVER (SỬ DỤNG MAUI DI)
+        if (poi != null && poi.Id > 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // Gọi API thông qua Handler của hệ thống MAUI (Cách xịn nhất)
+                    var apiService = Handler?.MauiContext?.Services.GetService<Services.ApiService>();
+                    if (apiService != null)
+                    {
+                        await apiService.IncreaseListenAsync(poi.Id);
+                    }
+                    else
+                    {
+                        // Dự phòng nếu không lấy được từ kho
+                        var fallbackApi = new Services.ApiService();
+                        await fallbackApi.IncreaseListenAsync(poi.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Lỗi tăng lượt nghe: {ex.Message}");
+                }
+            });
+        }
+
+        // 3. THỰC HIỆN ĐỌC ÂM THANH
         try
         {
-            // Bỏ đi mọi cài đặt rườm rà, để hệ điều hành tự lo giọng đọc
-            await TextToSpeech.Default.SpeakAsync(textToRead, cancelToken: _cts.Token);
+            // 👉👉👉 ĐOẠN THÊM MỚI: TÌM VÀ ÉP GIỌNG ĐỌC CHO ĐIỆN THOẠI 👉👉👉
+            // Bước A: Lấy danh sách tất cả các giọng đọc mà điện thoại đang có
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
 
-            // NẾU ĐỌC XONG TRỌN VẸN (Không bị Cancel) -> Mới tự động trả về nút Xanh
+            // Bước B: Lấy mã ngôn ngữ hiện tại khách đang chọn trên App (vd: "en", "ko")
+            string langCode = App.CurrentLanguageCode ?? "vi"; // Mặc định là vi nếu bị null
+
+            // Bước C: Tìm cái giọng khớp với mã ngôn ngữ đó
+            Locale selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains(langCode.ToLower()));
+
+            // Bước D: Đưa cái giọng vừa tìm được vào SpeechOptions và bắt điện thoại đọc
+            var tuyChon = new SpeechOptions()
+            {
+                Locale = selectedLocale,
+                Pitch = 1.0f,
+                Volume = 1.0f
+            };
+
+            await TextToSpeech.Default.SpeakAsync(textToRead, tuyChon, cancelToken: _cts.Token);
+            // 👈👈👈 KẾT THÚC ĐOẠN THÊM MỚI 👈👈👈
+
             if (_cts != null && !_cts.IsCancellationRequested)
             {
                 CapNhatNutNghe(false);
@@ -112,12 +164,38 @@ public partial class PoiDetailPage : ContentPage
         }
         catch (Exception ex)
         {
-            // NẾU LỖI NGẦM TỪ ANDROID -> BẮT NÓ HIỆN RA ĐỂ MÌNH THẤY!
             CapNhatNutNghe(false);
-            if (!(ex is TaskCanceledException)) // Bỏ qua lỗi hủy khi bấm Stop
+            if (!(ex is TaskCanceledException))
             {
                 await DisplayAlert("Lỗi Hệ Thống Âm Thanh", $"Android từ chối đọc: {ex.Message}", "OK");
             }
+        }
+    }
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        var poi = BindingContext as POI;
+        if (poi != null && poi.Id > 0)
+        {
+            // Chạy ngầm tăng View ngay khi trang vừa mở lên
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var apiService = Handler?.MauiContext?.Services.GetService<Services.ApiService>();
+                    if (apiService != null)
+                    {
+                        await apiService.IncreaseViewAsync(poi.Id);
+                    }
+                    else
+                    {
+                        var fallbackApi = new Services.ApiService();
+                        await fallbackApi.IncreaseViewAsync(poi.Id);
+                    }
+                }
+                catch { } // Không cần in lỗi
+            });
         }
     }
 }

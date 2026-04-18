@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using TourGuideAdmin.Models;
 
 namespace TourGuideAdmin.Services;
@@ -181,5 +182,21 @@ public class ApiService
     {
         var res = await _http.DeleteAsync($"api/QrCode/{id}");
         return res.IsSuccessStatusCode;
+    }
+    // ── Tracking (Thời gian thực) ─────────────────────────────────────────────
+    public async Task<int> GetActiveUserCountAsync()
+    {
+        try
+        {
+            // Đi xin dữ liệu từ cái TrackingController lúc nãy mình mới tạo
+            var response = await _http.GetFromJsonAsync<JsonElement>("api/Tracking/active-count");
+            // Rút con số "onlineUsers" ra khỏi gói dữ liệu
+            return response.GetProperty("onlineUsers").GetInt32();
+        }
+        catch
+        {
+            // Rớt mạng hoặc lỗi thì báo 0 người
+            return 0;
+        }
     }
 }
