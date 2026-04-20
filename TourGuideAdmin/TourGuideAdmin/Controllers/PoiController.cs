@@ -9,19 +9,20 @@ namespace TourGuideAdmin.Controllers;
 public class POIController : Controller
 {
     private readonly ApiService _api;
-    private readonly IWebHostEnvironment _env;
+    private readonly IWebHostEnvironment _env;   // 👉 ĐÃ THÊM: Khai báo biến môi trường
+    private readonly IConfiguration _config;     // 👉 ĐÃ THÊM: Khai báo biến cấu hình
 
-    public POIController(ApiService api, IWebHostEnvironment env)
+    // 👉 SỬA CONSTRUCTOR: Phải đưa env và config vào đây thì mới dùng được ở dưới
+    public POIController(ApiService api, IWebHostEnvironment env, IConfiguration config)
     {
         _api = api;
         _env = env;
+        _config = config;
     }
 
-    // Ai đăng nhập cũng được xem danh sách
     public async Task<IActionResult> Index()
         => View(await _api.GetPOIsAsync());
 
-    // --- BẮT ĐẦU VÙNG CẤM CỦA ADMIN ---
     [Authorize(Roles = "admin,Admin")]
     public IActionResult Create() => View(new PoiViewModel { IsActive = true, Radius = 30 });
 
@@ -29,7 +30,9 @@ public class POIController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(PoiViewModel model, IFormFile? ImageFile)
     {
+        // Gọi hàm lưu ảnh (Dòng 32 trong hình của Anh)
         model.ImageUrl = await SaveImageAsync(ImageFile, model.ImageUrl);
+
         var ok = await _api.CreatePOIAsync(model);
         TempData[ok ? "Success" : "Error"] = ok ? "Thêm địa điểm thành công!" : "Lỗi khi thêm địa điểm.";
         return RedirectToAction(nameof(Index));
@@ -47,7 +50,9 @@ public class POIController : Controller
     [HttpPost]
     public async Task<IActionResult> Edit(int id, PoiViewModel model, IFormFile? ImageFile)
     {
+        // Gọi hàm lưu ảnh (Dòng 50 trong hình của Anh)
         model.ImageUrl = await SaveImageAsync(ImageFile, model.ImageUrl);
+
         var ok = await _api.UpdatePOIAsync(id, model);
         TempData[ok ? "Success" : "Error"] = ok ? "Cập nhật thành công!" : "Lỗi khi cập nhật.";
         return RedirectToAction(nameof(Index));
@@ -62,15 +67,31 @@ public class POIController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // ============================================================
+    // 👉 HÀM LƯU ẢNH: ĐÃ SỬA LỖI _config VÀ _env
+    // ============================================================
     private async Task<string?> SaveImageAsync(IFormFile? file, string? existingUrl)
     {
         if (file == null || file.Length == 0) return existingUrl;
-        var dir = Path.Combine(_env.WebRootPath, "images");
-        Directory.CreateDirectory(dir);
+
+        // 1. ÉP ĐƯỜNG DẪN TUYỆT ĐỐI (Để chắc chắn sang đúng nhà API)
+        string apiRelativePath = _config["ApiWebRoot"] ?? "..\\TourGuideAPI\\wwwroot";
+        // Nhảy từ thư mục gốc của Admin sang API
+        string apiWebRoot = Path.GetFullPath(Path.Combine(_env.ContentRootPath, apiRelativePath));
+
+        var dir = Path.Combine(apiWebRoot, "images");
+
+        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
         var path = Path.Combine(dir, fileName);
-        using var stream = new FileStream(path, FileMode.Create);
-        await file.CopyToAsync(stream);
-        return $"/images/{fileName}";
+
+        using (var stream = new FileStream(path, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        // Trả về "images/tên-file.jpg"
+        return $"images/{fileName}";
     }
 }

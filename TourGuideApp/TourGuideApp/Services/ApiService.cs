@@ -22,23 +22,32 @@ public class ApiService
 
     public async Task<List<Models.POI>> GetPOIs(string langCode = "vi")
     {
-        string cacheKey = $"pois_cache_{langCode}"; // Chìa khóa để mở kho dữ liệu theo ngôn ngữ
+        string cacheKey = $"pois_cache_{langCode}";
 
         try
         {
-            // 1. KIỂM TRA MẠNG TRƯỚC
             if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
             {
-                // CÓ MẠNG: Gọi API lấy dữ liệu mới nhất
                 var response = await _httpClient.GetAsync($"api/POI?lang={langCode}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-
-                    // 👉 CẤT VÀO KHO (CACHE): Lưu chuỗi JSON này vào ổ cứng điện thoại
                     Preferences.Default.Set(cacheKey, content);
 
-                    return JsonSerializer.Deserialize<List<Models.POI>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var data = JsonSerializer.Deserialize<List<Models.POI>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (data != null)
+                    {
+                        foreach (var item in data)
+                        {
+                            if (!string.IsNullOrEmpty(item.ImageUrl) && !item.ImageUrl.StartsWith("http"))
+                            {
+                                // 👉 FIX LỖI NỐI CHUỖI: Đảm bảo link chỉ có duy nhất 1 dấu / ở giữa
+                                item.ImageUrl = _baseUrl.TrimEnd('/') + "/" + item.ImageUrl.TrimStart('/');
+                            }
+                        }
+                    }
+                    return data;
                 }
             }
         }
@@ -47,25 +56,30 @@ public class ApiService
             Debug.WriteLine(@"Lỗi lấy dữ liệu Online: " + ex.Message);
         }
 
-        // 2. CHẾ ĐỘ OFFLINE: Nếu rớt mạng hoặc API sập, lôi hàng trong kho ra
+        // Chế độ Offline: Lấy từ kho lưu trữ
         var cachedData = Preferences.Default.Get(cacheKey, string.Empty);
-
         if (!string.IsNullOrEmpty(cachedData))
         {
-            // Có dữ liệu cũ, giải nén và trả về cho App dùng tạm
-            return JsonSerializer.Deserialize<List<Models.POI>>(cachedData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var data = JsonSerializer.Deserialize<List<Models.POI>>(cachedData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (data != null)
+            {
+                foreach (var item in data)
+                {
+                    if (!string.IsNullOrEmpty(item.ImageUrl) && !item.ImageUrl.StartsWith("http"))
+                    {
+                        item.ImageUrl = _baseUrl.TrimEnd('/') + "/" + item.ImageUrl.TrimStart('/');
+                    }
+                }
+            }
+            return data;
         }
 
-        // Nếu cả kho cũng trống (lần đầu mở app mà không có mạng) thì đành chịu
         return new List<Models.POI>();
     }
-
-    // Đã sửa tham số thành chuỗi string "vi" làm mặc định
     public async Task<Models.POI> GetPOIById(int id, string langCode = "vi")
     {
         try
         {
-            // 1. CHỈ GỌI SERVER & GOOGLE DỊCH KHI CÓ INTERNET
             if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
             {
                 string url = $"api/POI/{id}?lang=vi";
@@ -74,18 +88,19 @@ public class ApiService
                 if (response.IsSuccessStatusCode)
                 {
                     string content = await response.Content.ReadAsStringAsync();
-                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var poi = System.Text.Json.JsonSerializer.Deserialize<Models.POI>(content, options);
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var poi = JsonSerializer.Deserialize<Models.POI>(content, options);
 
                     if (poi != null)
                     {
                         if (!string.IsNullOrEmpty(poi.ImageUrl) && !poi.ImageUrl.StartsWith("http"))
-                            poi.ImageUrl = "https://f8lzzzn0-7182.asse.devtunnels.ms/" + poi.ImageUrl.TrimStart('/');
+                        {
+                            // 👉 FIX LỖI NỐI CHUỖI: Dùng _baseUrl chung để đồng bộ
+                            poi.ImageUrl = _baseUrl.TrimEnd('/') + "/" + poi.ImageUrl.TrimStart('/');
+                        }
 
-                        // Lấy bài dài, nếu server vẫn giấu thì đành lấy bài ngắn
                         string originText = poi.Content?.Description ?? poi.Description ?? "Chưa có nội dung";
 
-                        // DỊCH SANG TIẾNG HÀN/TRUNG/NHẬT... (Google Dịch bắt buộc phải có mạng)
                         if (langCode != "vi" && langCode != "vn")
                         {
                             poi.Name = await GoogleTranslateAsync(poi.Name, langCode);
@@ -96,35 +111,28 @@ public class ApiService
                             poi.FinalDescription = originText;
                         }
                     }
-                    return poi; // Xử lý xong, trả về luôn
+                    return poi;
                 }
             }
         }
         catch (Exception ex)
         {
-            // Bỏ DisplayAlert đi để không làm phiền khách. Ghi log ngầm thôi.
             Debug.WriteLine($"Lỗi lấy chi tiết POI Online: {ex.Message}");
         }
 
-        // ========================================================
-        // 2. CHẾ ĐỘ OFFLINE: NẾU RỚT MẠNG HOẶC LỖI -> TÌM TRONG KHO
-        // ========================================================
-
-        // Gọi hàm GetPOIs (vì không có mạng, nó sẽ tự động moi danh sách từ ổ cứng điện thoại ra)
+        // Nếu lỗi hoặc mất mạng -> Tìm trong danh sách đã lưu ở kho
         var allPois = await GetPOIs(langCode);
         var offlinePoi = allPois.FirstOrDefault(p => p.Id == id);
 
         if (offlinePoi != null)
         {
-            // Xử lý lại đường dẫn ảnh cho nó khỏi bị lỗi
             if (!string.IsNullOrEmpty(offlinePoi.ImageUrl) && !offlinePoi.ImageUrl.StartsWith("http"))
-                offlinePoi.ImageUrl = "https://f8lzzzn0-7182.asse.devtunnels.ms/" + offlinePoi.ImageUrl.TrimStart('/');
-
-            // Rút nội dung ra để gán vào FinalDescription cho nút Audio nó đọc
+            {
+                offlinePoi.ImageUrl = _baseUrl.TrimEnd('/') + "/" + offlinePoi.ImageUrl.TrimStart('/');
+            }
             offlinePoi.FinalDescription = offlinePoi.Content?.Description ?? offlinePoi.Description ?? "Chưa có nội dung";
         }
 
-        // Trả về địa điểm lấy từ trong kho
         return offlinePoi;
     }
 

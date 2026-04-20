@@ -7,8 +7,6 @@ public partial class PoiDetailPage : ContentPage
     private CancellationTokenSource _cts;
     private bool _isNavigating = false;
     private bool _isSpeaking = false;
-
-    // VŨ KHÍ TỐI THƯỢNG: Đánh dấu số thứ tự để chống chớp giật nút
     private int _speechId = 0;
 
     public PoiDetailPage(POI selectedPoi)
@@ -27,11 +25,14 @@ public partial class PoiDetailPage : ContentPage
         btnBack.Text = Services.AppTranslator.Get(lang, "Back");
         lblHome.Text = Services.AppTranslator.Get(lang, "Home");
         lblQr.Text = Services.AppTranslator.Get(lang, "Qr");
+
+        // Dịch nút Danh sách
+        lblList.Text = Services.AppTranslator.Get(lang, "List") ?? "Danh sách";
+
         lblDistance.Text = string.Format(Services.AppTranslator.Get(lang, "Dist"), dist);
 
         CapNhatNutNghe(false);
 
-        // 👉 THÊM MỚI: Bắn pháo sáng báo cáo Lượt Xem
         if (poi != null)
         {
             var apiService = new Services.ApiService();
@@ -39,10 +40,8 @@ public partial class PoiDetailPage : ContentPage
         }
     }
 
-    // Tách riêng hàm đổi màu nút ra để quản lý độc quyền trên luồng chính
     private void CapNhatNutNghe(bool isSpeaking)
     {
-        // Ép chạy trên luồng giao diện chính để chống giật
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (isSpeaking)
@@ -60,7 +59,56 @@ public partial class PoiDetailPage : ContentPage
     }
 
     private void OnBackClicked(object sender, EventArgs e) { ExecuteBack(); }
-    private void OnFooterHomeTapped(object sender, TappedEventArgs e) { ExecuteBack(); }
+
+    // Bấm Trang chủ -> Về thẳng MapPage
+    private async void OnFooterHomeTapped(object sender, TappedEventArgs e)
+    {
+        if (_isNavigating) return;
+        _isNavigating = true;
+
+        // 1. Lấy danh sách các trang đang mở (Stack)
+        var stack = Navigation.NavigationStack.ToList();
+
+        // 2. Tìm xem trang MapPage nằm ở đâu trong chồng đĩa
+        var mapPage = stack.FirstOrDefault(p => p is MapPage);
+
+        if (mapPage != null)
+        {
+            // 3. VÒNG LẶP THẦN THÁNH: Xóa tất cả các trang nằm giữa trang hiện tại và MapPage
+            // Duyệt từ trang áp chót ngược về trước
+            for (int i = stack.Count - 2; i >= 0; i--)
+            {
+                var page = stack[i];
+                if (page is MapPage) break; // Gặp MapPage thì dừng lại không xóa nữa
+
+                Navigation.RemovePage(page); // Xóa trang rác ở giữa
+            }
+
+            // 4. Cuối cùng chỉ cần Pop một cái là nó rơi đúng về MapPage
+            await Navigation.PopAsync();
+        }
+        else
+        {
+            // Nếu lỡ không tìm thấy MapPage (hiếm gặp) thì mới về gốc
+            await Navigation.PopToRootAsync();
+        }
+
+        _isNavigating = false;
+    }
+
+    // 👉 THÊM MỚI: Bấm Danh sách -> Đẩy trang Danh sách lên hoặc Quay lại
+    private async void OnFooterListTapped(object sender, TappedEventArgs e)
+    {
+        if (_isNavigating) return;
+        _isNavigating = true;
+        _cts?.Cancel();
+
+        // Vì ta không có dữ liệu List<POI> ở đây, nên ta sẽ đóng trang Chi tiết lại
+        // Nó sẽ tự động lùi về trang Danh sách (nếu trước đó khách từ trang Danh sách bấm vào)
+        await Navigation.PopAsync();
+
+        _isNavigating = false;
+    }
 
     private async void OnFooterQrTapped(object sender, TappedEventArgs e)
     {
@@ -80,9 +128,25 @@ public partial class PoiDetailPage : ContentPage
         _isNavigating = false;
     }
 
+    
+
+    // 👉 THÊM MỚI: Chức năng Share (Chia sẻ) cực xịn
+    private async void OnShareClicked(object sender, EventArgs e)
+    {
+        var poi = BindingContext as POI;
+        if (poi != null)
+        {
+            await Share.Default.RequestAsync(new ShareTextRequest
+            {
+                Title = "Chia sẻ địa điểm",
+                Text = $"Hãy cùng tôi khám phá {poi.Name} qua ứng dụng TourGuide Quận 1!",
+                Uri = "https://your-admin-website.com" // Đổi thành link tải app thực tế của Anh sau này
+            });
+        }
+    }
+
     private async void OnSpeakClicked(object sender, EventArgs e)
     {
-        // 1. NẾU ĐANG LÀ NÚT STOP -> BẤM ĐỂ DỪNG
         if (btnSpeak.Text.Contains("Stop"))
         {
             _cts?.Cancel();
@@ -93,7 +157,6 @@ public partial class PoiDetailPage : ContentPage
             return;
         }
 
-        // 2. NẾU ĐANG LÀ NÚT NGHE -> BẮT ĐẦU ĐỌC
         var poi = BindingContext as POI;
         string textToRead = poi?.FinalDescription ?? poi?.Description;
 
@@ -106,14 +169,12 @@ public partial class PoiDetailPage : ContentPage
         _cts = new CancellationTokenSource();
         CapNhatNutNghe(true);
 
-        // 🚀 BƯỚC MỚI: BẮN TÍN HIỆU "THU TIỀN" VỀ SERVER (SỬ DỤNG MAUI DI)
         if (poi != null && poi.Id > 0)
         {
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    // Gọi API thông qua Handler của hệ thống MAUI (Cách xịn nhất)
                     var apiService = Handler?.MauiContext?.Services.GetService<Services.ApiService>();
                     if (apiService != null)
                     {
@@ -121,7 +182,6 @@ public partial class PoiDetailPage : ContentPage
                     }
                     else
                     {
-                        // Dự phòng nếu không lấy được từ kho
                         var fallbackApi = new Services.ApiService();
                         await fallbackApi.IncreaseListenAsync(poi.Id);
                     }
@@ -133,20 +193,12 @@ public partial class PoiDetailPage : ContentPage
             });
         }
 
-        // 3. THỰC HIỆN ĐỌC ÂM THANH
         try
         {
-            // 👉👉👉 ĐOẠN THÊM MỚI: TÌM VÀ ÉP GIỌNG ĐỌC CHO ĐIỆN THOẠI 👉👉👉
-            // Bước A: Lấy danh sách tất cả các giọng đọc mà điện thoại đang có
             var locales = await TextToSpeech.Default.GetLocalesAsync();
-
-            // Bước B: Lấy mã ngôn ngữ hiện tại khách đang chọn trên App (vd: "en", "ko")
-            string langCode = App.CurrentLanguageCode ?? "vi"; // Mặc định là vi nếu bị null
-
-            // Bước C: Tìm cái giọng khớp với mã ngôn ngữ đó
+            string langCode = App.CurrentLanguageCode ?? "vi";
             Locale selectedLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains(langCode.ToLower()));
 
-            // Bước D: Đưa cái giọng vừa tìm được vào SpeechOptions và bắt điện thoại đọc
             var tuyChon = new SpeechOptions()
             {
                 Locale = selectedLocale,
@@ -155,7 +207,6 @@ public partial class PoiDetailPage : ContentPage
             };
 
             await TextToSpeech.Default.SpeakAsync(textToRead, tuyChon, cancelToken: _cts.Token);
-            // 👈👈👈 KẾT THÚC ĐOẠN THÊM MỚI 👈👈👈
 
             if (_cts != null && !_cts.IsCancellationRequested)
             {
@@ -178,7 +229,6 @@ public partial class PoiDetailPage : ContentPage
         var poi = BindingContext as POI;
         if (poi != null && poi.Id > 0)
         {
-            // Chạy ngầm tăng View ngay khi trang vừa mở lên
             _ = Task.Run(async () =>
             {
                 try
@@ -194,7 +244,7 @@ public partial class PoiDetailPage : ContentPage
                         await fallbackApi.IncreaseViewAsync(poi.Id);
                     }
                 }
-                catch { } // Không cần in lỗi
+                catch { }
             });
         }
     }

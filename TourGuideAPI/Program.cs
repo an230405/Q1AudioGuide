@@ -21,9 +21,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// 2. KÍCH HOẠT CORS (Phải đặt trước MapControllers)
 app.UseCors("AllowAll");
 
+// CHỈ CẦN 1 DÒNG NÀY ĐỂ MỞ CỬA CHO ẢNH
 app.UseStaticFiles();
 
 if (app.Environment.IsDevelopment())
@@ -32,8 +32,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// 3. TẠM TẮT HTTPS REDIRECTION (Để test bằng HTTP cho dễ)
-// app.UseHttpsRedirection(); 
-app.UseStaticFiles();
+// app.UseHttpsRedirection(); // Tạm tắt để test cho dễ như Anh đã làm
+
 app.MapControllers();
 app.Run();

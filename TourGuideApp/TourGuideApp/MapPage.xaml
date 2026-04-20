@@ -18,6 +18,7 @@
                        FontSize="12" FontAttributes="Bold" VerticalOptions="Center"/>
             </HorizontalStackLayout>
         </Frame>
+
         <mapsui:MapView x:Name="mapView" 
                         Grid.RowSpan="2"
                         PinClicked="OnPinClicked" 
@@ -65,18 +66,29 @@
                 </VerticalStackLayout>
             </Frame>
 
-            <Grid Grid.Row="1" BackgroundColor="#2563EB" ColumnDefinitions="*, *" Padding="0, 10, 0, 0">
+            <Grid Grid.Row="1" BackgroundColor="#2563EB" ColumnDefinitions="*, *, *" Padding="0, 10, 0, 0">
+
                 <VerticalStackLayout Grid.Column="0" HorizontalOptions="Center">
                     <Label Text="🏠" TextColor="White" FontSize="20" HorizontalOptions="Center"/>
                     <Label x:Name="lblHome" Text="Trang chủ" TextColor="White" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
                 </VerticalStackLayout>
+
                 <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnListClicked"/>
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="📋" TextColor="#A0AEC0" FontSize="20" HorizontalOptions="Center"/>
+                    <Label x:Name="lblList" Text="Danh sách" TextColor="#A0AEC0" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnScanQrClicked"/>
                     </VerticalStackLayout.GestureRecognizers>
                     <Label Text="📷" TextColor="#A0AEC0" FontSize="20" HorizontalOptions="Center"/>
                     <Label x:Name="lblQr" Text="Quét QR" TextColor="#A0AEC0" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
                 </VerticalStackLayout>
+
             </Grid>
         </Grid>
     </Grid>

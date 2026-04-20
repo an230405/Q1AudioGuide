@@ -85,6 +85,9 @@ public class DashboardViewModel
     public int ActiveUsersOnline { get; set; }
     public List<AudioLogViewModel> RecentLogs { get; set; } = new();
     public List<PoiViewModel> RecentPOIs { get; set; } = new();
+    // 👉 2 Biến mới dùng để vẽ Biểu đồ Chart.js
+    public List<string> TopPoiNames { get; set; } = new List<string>();
+    public List<int> TopPoiListens { get; set; } = new List<int>();
 }
 
 public class QrCodeViewModel

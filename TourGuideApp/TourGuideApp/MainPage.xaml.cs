@@ -63,17 +63,24 @@ public partial class MainPage : ContentPage
         loadingOverlay.IsVisible = true;
         btnStart.IsEnabled = false;
 
-        // Lưu ý: Đã đổi truyền App.CurrentLanguageCode (ví dụ "th") vào thay vì truyền số
-        // (Nếu file ApiService của Anh bị gạch đỏ chỗ này, Anh mở ApiService sửa tham số int thành string nhé)
         var data = await _apiService.GetPOIs(App.CurrentLanguageCode);
 
         if (data != null && data.Count > 0)
         {
-            string baseUrl = "https://f8lzzzn0-7182.asse.devtunnels.ms/";
+            string baseUrl = "https://f8lzzzn0-7182.asse.devtunnels.ms";
+            if (baseUrl.EndsWith("/")) baseUrl = baseUrl.TrimEnd('/');
+
             foreach (var item in data)
             {
-                if (!string.IsNullOrEmpty(item.ImageUrl) && !item.ImageUrl.StartsWith("http"))
-                    item.ImageUrl = baseUrl + item.ImageUrl.TrimStart('/');
+                if (string.IsNullOrEmpty(item.ImageUrl))
+                {
+                    item.ImageUrl = "default_poi.png";
+                }
+                else if (!item.ImageUrl.StartsWith("http"))
+                {
+                    // Nối chuỗi "sạch": baseUrl + / + đường dẫn ảnh
+                    item.ImageUrl = baseUrl + "/" + item.ImageUrl.TrimStart('/');
+                }
             }
 
             await TinhToanKhoangCach(data);
@@ -82,13 +89,17 @@ public partial class MainPage : ContentPage
             loadingOverlay.IsVisible = false;
             btnStart.IsEnabled = true;
 
+            // 👉 DÒNG KIỂM TRA: Nó sẽ hiện link ảnh của địa điểm đầu tiên lên màn hình
+            // Sau khi chạy ok Anh xóa dòng này đi nhé
+            // await DisplayAlert("Kiểm tra link", data[0].ImageUrl, "OK");
+
             await Navigation.PushAsync(new MapPage(_danhSachDiaDiem));
         }
         else
         {
             loadingOverlay.IsVisible = false;
             btnStart.IsEnabled = true;
-            await DisplayAlert("Error", "Unable to load data!", "OK");
+            await DisplayAlert("Lỗi", "Không tải được dữ liệu!", "OK");
         }
     }
 

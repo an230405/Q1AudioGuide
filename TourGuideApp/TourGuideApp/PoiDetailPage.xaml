@@ -5,12 +5,13 @@
              NavigationPage.HasNavigationBar="False"
              Shell.NavBarIsVisible="False"
              BackgroundColor="White">
-
     <Grid RowDefinitions="Auto, *, Auto">
+
         <Grid Grid.Row="0" BackgroundColor="#2563EB" Padding="15">
-            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                <Button x:Name="btnBack" Text="❮ Quay lại" Clicked="OnBackClicked" BackgroundColor="Transparent" TextColor="White" FontSize="16" FontAttributes="Bold" Padding="0" />
-            </HorizontalStackLayout>
+            <Grid ColumnDefinitions="*, Auto">
+                <Button Grid.Column="0" x:Name="btnBack" Text="❮ Quay lại" Clicked="OnBackClicked" HorizontalOptions="Start" BackgroundColor="Transparent" TextColor="White" FontSize="16" FontAttributes="Bold" Padding="0" />
+                <ImageButton Grid.Column="1" Source="share_icon.png" Clicked="OnShareClicked" HeightRequest="24" BackgroundColor="Transparent" />
+            </Grid>
         </Grid>
 
         <ScrollView Grid.Row="1">
@@ -29,17 +30,25 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <Grid Grid.Row="2" BackgroundColor="#2563EB" ColumnDefinitions="*, *" Padding="0, 10, 0, 0" HeightRequest="65">
+        <Grid Grid.Row="2" BackgroundColor="#2563EB" ColumnDefinitions="*, *, *" Padding="0, 10, 0, 0" HeightRequest="65">
 
             <VerticalStackLayout Grid.Column="0" HorizontalOptions="Center">
                 <VerticalStackLayout.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnFooterHomeTapped"/>
                 </VerticalStackLayout.GestureRecognizers>
-                <Label Text="🏠" FontSize="20" HorizontalOptions="Center"/>
-                <Label x:Name="lblHome" Text="Trang chủ" TextColor="White" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+                <Label Text="🏠" TextColor="#A0AEC0" FontSize="20" HorizontalOptions="Center"/>
+                <Label x:Name="lblHome" Text="Trang chủ" TextColor="#A0AEC0" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
             <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnFooterListTapped"/>
+                </VerticalStackLayout.GestureRecognizers>
+                <Label Text="📋" TextColor="#A0AEC0" FontSize="20" HorizontalOptions="Center"/>
+                <Label x:Name="lblList" Text="Danh sách" TextColor="#A0AEC0" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
                 <VerticalStackLayout.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnFooterQrTapped"/>
                 </VerticalStackLayout.GestureRecognizers>

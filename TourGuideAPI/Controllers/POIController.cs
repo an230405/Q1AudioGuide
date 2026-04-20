@@ -22,8 +22,7 @@ namespace TourGuideAPI.Controllers
             return Ok(await ProjectPoiData(lang));
         }
 
-        // 2. LẤY TẤT CẢ CHO APP & ADMIN (api/POI/all?lang=vi)
-        // ĐÃ SỬA: Thêm tham số lang và lệnh Select để lấy bản dịch
+        // 2. LẤY TẤT CẢ CHO ADMIN & APP (api/POI/all?lang=vi)
         [HttpGet("all")]
         public async Task<IActionResult> GetAllPOIs([FromQuery] string lang = "vi")
         {
@@ -31,20 +30,18 @@ namespace TourGuideAPI.Controllers
         }
 
         // 3. LẤY CHI TIẾT KHI QUÉT QR (api/POI/5?lang=vi)
-        // ĐÃ SỬA: Trả về dữ liệu có kèm bản dịch Content
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPOI(int id, [FromQuery] string lang = "vi")
         {
             string langCode = lang.ToLower();
-            var poi = await ProjectPoiData(langCode, id);
+            var poiList = await ProjectPoiData(langCode, id);
+            var result = poiList.FirstOrDefault();
 
-            var result = poi.FirstOrDefault();
             if (result == null) return NotFound();
-
             return Ok(result);
         }
 
-        // --- HÀM PHỤ TRỢ: Giúp gom nhóm logic lấy dữ liệu tránh viết lặp lại ---
+        // --- HÀM PHỤ TRỢ: CHỐNG LẶP CODE ---
         private async Task<List<object>> ProjectPoiData(string langCode, int? id = null)
         {
             var query = _context.Pois.AsQueryable();
@@ -67,12 +64,9 @@ namespace TourGuideAPI.Controllers
                     .FirstOrDefault() ?? p.Description,
                 p.IsActive,
                 p.CreatedAt,
-
-                // 👉 CHÍNH LÀ 3 DÒNG NÀY ĐANG BỊ THIẾU NÈ ANH:
                 p.ViewCount,
                 p.ListenCount,
                 p.PriorityScore,
-
                 Content = p.Translations
                     .Where(c => c.Language != null && c.Language.Code.ToLower() == langCode)
                     .Select(c => new
@@ -90,8 +84,6 @@ namespace TourGuideAPI.Controllers
             .ToListAsync();
         }
 
-        // --- CÁC HÀM TẠO, SỬA, XÓA (GIỮ NGUYÊN CHỨC NĂNG CŨ) ---
-
         [HttpPost]
         public async Task<IActionResult> CreatePOI([FromBody] Poi poi)
         {
@@ -107,12 +99,9 @@ namespace TourGuideAPI.Controllers
             if (id != poi.Id) return BadRequest();
 
             _context.Entry(poi).State = EntityState.Modified;
-
-            // Không cho phép sửa ngày tạo
             _context.Entry(poi).Property(x => x.CreatedAt).IsModified = false;
 
-            // 👉 CỰC KỲ QUAN TRỌNG: Khóa 2 cột này lại. 
-            // Tránh trường hợp Admin vô tình bấm Cập nhật làm reset số lượt xem/nghe về 0
+            // Khóa không cho sửa số lượt xem/nghe thủ công qua form
             _context.Entry(poi).Property(x => x.ViewCount).IsModified = false;
             _context.Entry(poi).Property(x => x.ListenCount).IsModified = false;
 
@@ -133,27 +122,39 @@ namespace TourGuideAPI.Controllers
             _context.Pois.Remove(poi);
             await _context.SaveChangesAsync();
             return NoContent();
-        }// 1. Hàm tăng lượt xem (ViewCount)
+        }
+
         [HttpPost("{id}/increase-view")]
         public async Task<IActionResult> IncreaseView(int id)
         {
             var poi = await _context.Pois.FindAsync(id);
             if (poi == null) return NotFound();
-
-            poi.ViewCount++; // Tăng thêm 1
-            await _context.SaveChangesAsync(); // Lưu vào Database
+            poi.ViewCount++;
+            await _context.SaveChangesAsync();
             return Ok(new { currentViews = poi.ViewCount });
         }
 
-        // 2. Hàm tăng lượt nghe (ListenCount)
         [HttpPost("{id}/increase-listen")]
         public async Task<IActionResult> IncreaseListen(int id)
         {
             var poi = await _context.Pois.FindAsync(id);
             if (poi == null) return NotFound();
 
-            poi.ListenCount++; // Tăng thêm 1
-            await _context.SaveChangesAsync(); // Lưu vào Database
+            // 1. Tăng tổng số
+            poi.ListenCount++;
+
+            // 👉 2. THÊM MỚI: Chỉ lưu ID và Thời gian vào nhật ký
+            var log = new AudioLog
+            {
+                PoiId = poi.Id,
+                // Đã xóa dòng PoiName vì Database không cần
+                PlayTime = DateTime.Now
+            };
+            _context.AudioLogs.Add(log);
+
+            // 3. Lưu tất cả lại
+            await _context.SaveChangesAsync();
+
             return Ok(new { currentListens = poi.ListenCount });
         }
     }

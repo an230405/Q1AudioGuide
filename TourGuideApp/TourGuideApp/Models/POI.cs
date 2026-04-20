@@ -35,6 +35,9 @@ public class POI
     public int ViewCount { get; set; }
     public int ListenCount { get; set; }
     public int PriorityScore { get; set; }
+    // Thuộc tính mới: Đánh dấu xem địa điểm này đã được tự động phát chưa
+    // Thuộc tính này chỉ tồn tại lúc App đang chạy, không cần lưu vào Database
+    public bool IsAutoPlayed { get; set; } = false;
 
     // ==========================================
     // PHẦN THÊM MỚI CHO TÍNH NĂNG ĐỊNH VỊ GPS

@@ -5,14 +5,16 @@ namespace TourGuideApp;
 
 public partial class QRScannerPage : ContentPage
 {
-    bool 
-        _isScanning = true;
+    bool _isScanning = true;
     ApiService _apiService;
+    List<Models.POI> _danhSachPOI;
 
-    public QRScannerPage()
+    // Sửa lại constructor để nhận dữ liệu POI truyền sang
+    public QRScannerPage(List<Models.POI> pois = null)
     {
         InitializeComponent();
         _apiService = new ApiService();
+        _danhSachPOI = pois ?? new List<Models.POI>(); // Bọc thép chống lỗi Null
 
         barcodeReader.Options = new BarcodeReaderOptions
         {
@@ -26,12 +28,14 @@ public partial class QRScannerPage : ContentPage
 
     private void DichGiaoDien()
     {
-        string lang = App.CurrentLanguageCode; // Lấy "th", "vi", "en"...
+        string lang = App.CurrentLanguageCode;
 
-        // Gọi Từ điển ra xài, code sạch đẹp rạng ngời!
         lblInstruction.Text = Services.AppTranslator.Get(lang, "Instruction");
         lblHome.Text = Services.AppTranslator.Get(lang, "Home");
         lblQr.Text = Services.AppTranslator.Get(lang, "Qr");
+
+        // Gọi dịch cho nút Danh sách
+        lblList.Text = Services.AppTranslator.Get(lang, "List");
     }
 
     protected override void OnNavigatedTo(NavigatedToEventArgs args)
@@ -57,7 +61,6 @@ public partial class QRScannerPage : ContentPage
 
         if (int.TryParse(qrContent, out int poiId))
         {
-            // Sửa tham số truyền vào API thành App.CurrentLanguageCode (VD: "th")
             var detail = await _apiService.GetPOIById(poiId, App.CurrentLanguageCode);
 
             if (detail != null)
@@ -89,7 +92,6 @@ public partial class QRScannerPage : ContentPage
         }
     }
 
-    // Hàm báo lỗi đã được làm lại bằng Từ điển
     private async void ShowErrorAlert(string qrContent, bool isIdNotFound)
     {
         string lang = App.CurrentLanguageCode;
@@ -113,6 +115,24 @@ public partial class QRScannerPage : ContentPage
     private async void OnHomeClicked(object sender, TappedEventArgs e)
     {
         barcodeReader.IsDetecting = false;
-        await Navigation.PopAsync();
+        await Navigation.PopAsync(); // Trang chủ chính là trang Map nằm ở lớp dưới
+    }
+
+    // 👉 THÊM MỚI: Xử lý khi nhấn nút Danh sách
+    private async void OnListClicked(object sender, TappedEventArgs e)
+    {
+        // 1. Tắt Camera ngay lập tức để tiết kiệm Pin
+        barcodeReader.IsDetecting = false;
+
+        // 2. Chuyển sang trang Danh Sách
+        if (_danhSachPOI != null && _danhSachPOI.Any())
+        {
+            await Navigation.PushAsync(new PoiListPage(_danhSachPOI));
+        }
+        else
+        {
+            // Dự phòng: Nếu mất dữ liệu POI, quay về trang chủ để tải lại
+            await Navigation.PopAsync();
+        }
     }
 }
