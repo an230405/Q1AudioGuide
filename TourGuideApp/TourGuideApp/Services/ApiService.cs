@@ -224,4 +224,50 @@ public class ApiService
             // Nếu rớt mạng gửi xịt thì thôi, hệ thống bắt mạng bên dưới sẽ tự lo
         }
     }
+    // Đặt cái này ở cuối file ApiService.cs
+    public class DynamicDictionary
+    {
+        // Kho chứa từ đã dịch
+        public static Dictionary<string, string> TranslatedWords { get; set; } = new();
+
+        // 1. CHUẨN BỊ 10 TỪ "LẶT VẶT" CẦN DỊCH TRÊN APP
+        private static readonly Dictionary<string, string> DefaultWords = new()
+    {
+        { "Nearby", "Địa điểm gần bạn:" },
+        { "Distance", "Cách bạn" },
+        { "PlayAudio", "PHÁT THUYẾT MINH" },
+        { "Home", "Trang chủ" },
+        { "List", "Danh sách" },
+        { "ScanQR", "Quét QR" },
+        { "Km", "km" },
+        { "Loading", "Đang tải..." }
+    };
+
+        // 2. HÀM TỰ ĐỘNG DỊCH 1 LẦN RỒI NHỚ LUÔN
+        public static async Task LoadTranslationsAsync(string langCode, ApiService api)
+        {
+            TranslatedWords.Clear();
+
+            // Nếu là tiếng Việt thì khỏi dịch, xài luôn từ gốc
+            if (langCode == "vi" || langCode == "vn")
+            {
+                foreach (var item in DefaultWords) TranslatedWords[item.Key] = item.Value;
+                return;
+            }
+
+            // Nếu là tiếng nước ngoài thì mang đi dịch
+            foreach (var item in DefaultWords)
+            {
+                // Gọi hàm Google Dịch đã có sẵn của Anh
+                string translated = await api.GoogleTranslateAsync(item.Value, langCode);
+                TranslatedWords[item.Key] = translated;
+            }
+        }
+
+        // 3. HÀM LẤY CHỮ RA XÀI NHANH
+        public static string Get(string key)
+        {
+            return TranslatedWords.ContainsKey(key) ? TranslatedWords[key] : DefaultWords.GetValueOrDefault(key, key);
+        }
+    }
 }

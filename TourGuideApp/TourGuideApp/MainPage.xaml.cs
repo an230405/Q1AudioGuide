@@ -29,7 +29,8 @@ public partial class MainPage : ContentPage
     }
 
     // KHI NGƯỜI DÙNG ĐỔI NGÔN NGỮ
-    private void OnLanguageChanged(object sender, EventArgs e)
+    // 👉 ĐÃ SỬA: Thêm chữ async vào đây
+    private async void OnLanguageChanged(object sender, EventArgs e)
     {
         if (langPicker.SelectedIndex == -1 || _danhSachNgonNgu.Count == 0) return;
 
@@ -40,18 +41,19 @@ public partial class MainPage : ContentPage
 
         string lang = App.CurrentLanguageCode;
 
-        // Đổi chữ trên màn hình ngay lập tức (Đã sửa đúng tên biến x:Name)
+        // 1. KÍCH HOẠT DỊCH TỰ ĐỘNG BỘ TỪ ĐIỂN
+        await Services.AppTranslator.LoadTranslationsAsync(lang, _apiService);
+
+        // 2. SAU KHI DỊCH XONG, CẬP NHẬT LÊN GIAO DIỆN
         lblGreeting.Text = Services.AppTranslator.Get(lang, "Greeting");
         lblTitle.Text = Services.AppTranslator.Get(lang, "Title");
-        lblSubTitle.Text = Services.AppTranslator.Get(lang, "Subtitle"); // Chữ T viết hoa
-        lblLangPrompt.Text = Services.AppTranslator.Get(lang, "Question"); // Sửa thành lblLangPrompt
+        lblSubTitle.Text = Services.AppTranslator.Get(lang, "Subtitle");
+        lblLangPrompt.Text = Services.AppTranslator.Get(lang, "Question");
 
-        // Dịch 3 tính năng ở giữa màn hình
         lblFeature1.Text = Services.AppTranslator.Get(lang, "Nav");
         lblFeature2.Text = Services.AppTranslator.Get(lang, "Audio");
         lblFeature3.Text = Services.AppTranslator.Get(lang, "Multi");
 
-        // Dịch nút bấm và màn hình chờ
         btnStart.Text = Services.AppTranslator.Get(lang, "Explore");
         lblLoading.Text = Services.AppTranslator.Get(lang, "Loading");
     }
@@ -60,6 +62,8 @@ public partial class MainPage : ContentPage
         if (langPicker.SelectedIndex == -1) return;
 
         App.CurrentLanguage = langPicker.SelectedIndex;
+        // Bảo hệ thống dịch 10 từ lặt vặt ngầm bên dưới trong lúc đang quay quay
+        //await Services.DynamicDictionary.LoadTranslationsAsync(App.CurrentLanguageCode, _apiService);
         loadingOverlay.IsVisible = true;
         btnStart.IsEnabled = false;
 

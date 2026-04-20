@@ -129,9 +129,40 @@ namespace TourGuideAPI.Controllers
         {
             var poi = await _context.Pois.FindAsync(id);
             if (poi == null) return NotFound();
-            _context.Pois.Remove(poi);
-            await _context.SaveChangesAsync();
-            return NoContent();
+
+            try
+            {
+                // 1. Dọn dẹp Bản dịch (Translations)
+                var translations = _context.Translations.Where(t => t.PoiId == id);
+                _context.Translations.RemoveRange(translations);
+
+                // 2. Dọn dẹp Audio
+                var audios = _context.Audios.Where(a => a.PoiId == id);
+                _context.Audios.RemoveRange(audios);
+
+                // 3. Dọn dẹp Nhật ký nghe (AudioLogs)
+                var logs = _context.AudioLogs.Where(l => l.PoiId == id);
+                _context.AudioLogs.RemoveRange(logs);
+
+                // 4. Dọn dẹp QR Code (nếu có bảng này)
+                // Nếu project Anh không có bảng QrCodes thì Anh cứ mạnh dạn xóa 2 dòng này đi nhé
+                var qrs = _context.QrCodes.Where(q => q.PoiId == id);
+                _context.QrCodes.RemoveRange(qrs);
+
+                // 5. Cuối cùng: Xóa thẳng tay Địa điểm
+                _context.Pois.Remove(poi);
+
+                // Lưu thay đổi 1 lần duy nhất cho tối ưu
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                // Bắt lỗi in ra cửa sổ Output để lỡ có trục trặc mình còn biết đường sửa
+                System.Diagnostics.Debug.WriteLine($"Lỗi xóa DB: {ex.Message}");
+                return BadRequest("Không thể xóa địa điểm này do vướng dữ liệu liên quan.");
+            }
         }
 
         [HttpPost("{id}/increase-view")]

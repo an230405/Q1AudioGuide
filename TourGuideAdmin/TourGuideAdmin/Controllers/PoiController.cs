@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TourGuideAdmin.Models;
 using TourGuideAdmin.Services;
+using System.Text.Json;
+using System.Text;
 
 namespace TourGuideAdmin.Controllers;
 
@@ -9,10 +11,9 @@ namespace TourGuideAdmin.Controllers;
 public class POIController : Controller
 {
     private readonly ApiService _api;
-    private readonly IWebHostEnvironment _env;   // 👉 ĐÃ THÊM: Khai báo biến môi trường
-    private readonly IConfiguration _config;     // 👉 ĐÃ THÊM: Khai báo biến cấu hình
+    private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _config;
 
-    // 👉 SỬA CONSTRUCTOR: Phải đưa env và config vào đây thì mới dùng được ở dưới
     public POIController(ApiService api, IWebHostEnvironment env, IConfiguration config)
     {
         _api = api;
@@ -30,10 +31,14 @@ public class POIController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(PoiViewModel model, IFormFile? ImageFile)
     {
-        // Gọi hàm lưu ảnh (Dòng 32 trong hình của Anh)
         model.ImageUrl = await SaveImageAsync(ImageFile, model.ImageUrl);
-
         var ok = await _api.CreatePOIAsync(model);
+
+        if (ok)
+        {
+            await AutoTranslateNewPoiAsync(model.Name);
+        }
+
         TempData[ok ? "Success" : "Error"] = ok ? "Thêm địa điểm thành công!" : "Lỗi khi thêm địa điểm.";
         return RedirectToAction(nameof(Index));
     }
@@ -50,9 +55,7 @@ public class POIController : Controller
     [HttpPost]
     public async Task<IActionResult> Edit(int id, PoiViewModel model, IFormFile? ImageFile)
     {
-        // Gọi hàm lưu ảnh (Dòng 50 trong hình của Anh)
         model.ImageUrl = await SaveImageAsync(ImageFile, model.ImageUrl);
-
         var ok = await _api.UpdatePOIAsync(id, model);
         TempData[ok ? "Success" : "Error"] = ok ? "Cập nhật thành công!" : "Lỗi khi cập nhật.";
         return RedirectToAction(nameof(Index));
@@ -67,20 +70,22 @@ public class POIController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // ============================================================
-    // 👉 HÀM LƯU ẢNH: ĐÃ SỬA LỖI _config VÀ _env
-    // ============================================================
     private async Task<string?> SaveImageAsync(IFormFile? file, string? existingUrl)
     {
         if (file == null || file.Length == 0) return existingUrl;
 
-        // 1. ÉP ĐƯỜNG DẪN TUYỆT ĐỐI (Để chắc chắn sang đúng nhà API)
-        string apiRelativePath = _config["ApiWebRoot"] ?? "..\\TourGuideAPI\\wwwroot";
-        // Nhảy từ thư mục gốc của Admin sang API
-        string apiWebRoot = Path.GetFullPath(Path.Combine(_env.ContentRootPath, apiRelativePath));
+        // 1. Lấy đường dẫn từ appsettings.json
+        string apiWebRoot = _config["ApiWebRoot"];
+
+        // 2. Nếu trong appsettings.json không có, thì nó mới dùng đường dẫn tương đối (dễ lỗi)
+        if (string.IsNullOrEmpty(apiWebRoot))
+        {
+            apiWebRoot = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "..\\TourGuideAPI\\wwwroot"));
+        }
 
         var dir = Path.Combine(apiWebRoot, "images");
 
+        // Tự động tạo thư mục images nếu bên API chưa có
         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
@@ -91,7 +96,59 @@ public class POIController : Controller
             await file.CopyToAsync(stream);
         }
 
-        // Trả về "images/tên-file.jpg"
+        // Trả về chuỗi để lưu vào DB: "images/tên-file.jpg"
         return $"images/{fileName}";
+    }
+
+    private async Task AutoTranslateNewPoiAsync(string poiName)
+    {
+        var allPois = await _api.GetPOIsAsync();
+        var newPoi = allPois.OrderByDescending(p => p.Id).FirstOrDefault(p => p.Name == poiName);
+
+        if (newPoi == null) return;
+
+        var languages = await _api.GetLanguagesAsync();
+
+        foreach (var lang in languages)
+        {
+            if (lang.Code == "vi" || lang.Code == "vn") continue;
+
+            var translatedName = await TranslateTextAsync(newPoi.Name, lang.Code);
+            var translatedDesc = await TranslateTextAsync(newPoi.Description ?? "", lang.Code);
+
+            var translation = new TranslationViewModel
+            {
+                PoiId = newPoi.Id,
+                LanguageId = lang.Id,
+                Title = translatedName,
+                Content = translatedDesc
+            };
+
+            await _api.CreateTranslationAsync(translation);
+        }
+    }
+
+    private async Task<string> TranslateTextAsync(string text, string targetLang)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return text;
+        try
+        {
+            string url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={targetLang}&dt=t&q={Uri.EscapeDataString(text)}";
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+            string response = await client.GetStringAsync(url);
+            var jsonDocument = JsonDocument.Parse(response);
+            var sb = new StringBuilder();
+
+            foreach (var item in jsonDocument.RootElement[0].EnumerateArray())
+            {
+                sb.Append(item[0].GetString());
+            }
+            return sb.ToString();
+        }
+        catch
+        {
+            return text;
+        }
     }
 }
