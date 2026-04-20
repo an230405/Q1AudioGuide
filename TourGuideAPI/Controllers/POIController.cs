@@ -16,17 +16,19 @@ namespace TourGuideAPI.Controllers
         }
 
         // 1. LẤY DANH SÁCH CHO APP (api/POI?lang=vi)
+        // 👉 ĐÃ SỬA: Thêm onlyActive: true để App chỉ tải những địa điểm đang "Hiện"
         [HttpGet]
         public async Task<IActionResult> GetPOIs([FromQuery] string lang = "vi")
         {
-            return Ok(await ProjectPoiData(lang));
+            return Ok(await ProjectPoiData(lang, id: null, onlyActive: true));
         }
 
-        // 2. LẤY TẤT CẢ CHO ADMIN & APP (api/POI/all?lang=vi)
+        // 2. LẤY TẤT CẢ CHO ADMIN (api/POI/all?lang=vi)
+        // 👉 ĐÃ SỬA: onlyActive: false để Admin thấy được toàn bộ để quản lý
         [HttpGet("all")]
         public async Task<IActionResult> GetAllPOIs([FromQuery] string lang = "vi")
         {
-            return Ok(await ProjectPoiData(lang));
+            return Ok(await ProjectPoiData(lang, id: null, onlyActive: false));
         }
 
         // 3. LẤY CHI TIẾT KHI QUÉT QR (api/POI/5?lang=vi)
@@ -34,7 +36,7 @@ namespace TourGuideAPI.Controllers
         public async Task<IActionResult> GetPOI(int id, [FromQuery] string lang = "vi")
         {
             string langCode = lang.ToLower();
-            var poiList = await ProjectPoiData(langCode, id);
+            var poiList = await ProjectPoiData(langCode, id, onlyActive: false);
             var result = poiList.FirstOrDefault();
 
             if (result == null) return NotFound();
@@ -42,10 +44,18 @@ namespace TourGuideAPI.Controllers
         }
 
         // --- HÀM PHỤ TRỢ: CHỐNG LẶP CODE ---
-        private async Task<List<object>> ProjectPoiData(string langCode, int? id = null)
+        // 👉 ĐÃ SỬA: Thêm tham số bool onlyActive = false vào hàm
+        private async Task<List<object>> ProjectPoiData(string langCode, int? id = null, bool onlyActive = false)
         {
             var query = _context.Pois.AsQueryable();
+
             if (id.HasValue) query = query.Where(p => p.Id == id);
+
+            // 👉 BỘ LỌC ẨN/HIỆN NẰM Ở ĐÂY:
+            if (onlyActive)
+            {
+                query = query.Where(p => p.IsActive == true);
+            }
 
             return await query.Select(p => new
             {
@@ -143,11 +153,10 @@ namespace TourGuideAPI.Controllers
             // 1. Tăng tổng số
             poi.ListenCount++;
 
-            // 👉 2. THÊM MỚI: Chỉ lưu ID và Thời gian vào nhật ký
+            // 2. THÊM MỚI: Chỉ lưu ID và Thời gian vào nhật ký
             var log = new AudioLog
             {
                 PoiId = poi.Id,
-                // Đã xóa dòng PoiName vì Database không cần
                 PlayTime = DateTime.Now
             };
             _context.AudioLogs.Add(log);
