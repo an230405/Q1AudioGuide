@@ -71,8 +71,9 @@ public class HomeController : Controller
             {
                 var pois = await _api.GetPOIsAsync();
                 var top5 = pois.OrderByDescending(p => p.ListenCount).Take(5).ToList();
+                //top5.ForEach(p => p.ListenCount *= 10);
                 topNames = top5.Select(p => p.Name).ToList();
-                topCounts = top5.Select(p => p.ListenCount).ToList();
+                topCounts = top5.Select(p => p.ListenCount ).ToList();
             }
             else
             {
@@ -87,6 +88,7 @@ public class HomeController : Controller
                 else if (period == "7days")
                     query = query.Where(l => l.PlayTime >= now.AddDays(-7));
                 else if (period == "30days")
+
                     query = query.Where(l => l.PlayTime >= now.AddDays(-30));
 
                 // Nhóm theo tên địa điểm và đếm số lượt xuất hiện
